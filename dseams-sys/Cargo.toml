@@ -1,15 +1,15 @@
 [package]
 name = "dseams-sys"
-version = "2.14.0"
-edition = "2021"
-rust-version = "1.85"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
 description = "Raw FFI for the d-SEAMS C API, with a bundled build of libseams"
-authors = ["Rohit Goswami <rgoswami@ieee.org>"]
+authors.workspace = true
 # The crate code and d-SEAMS are MIT. vendor/eigen is Eigen 3.4.0: MPL-2.0,
 # with AlignedBox.h under BSD-3-Clause and BFloat16.h under Apache-2.0.
 license = "MIT AND MPL-2.0 AND BSD-3-Clause AND Apache-2.0"
-homepage = "https://dseams.info"
-repository = "https://github.com/d-SEAMS/seams-core"
+homepage.workspace = true
+repository.workspace = true
 documentation = "https://docs.rs/dseams-sys"
 readme = "README.md"
 keywords = ["molecular-dynamics", "ice", "chemistry", "ffi", "simulation"]
