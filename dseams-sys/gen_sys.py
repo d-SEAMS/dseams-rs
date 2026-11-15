@@ -6,7 +6,7 @@
 LuaJIT is not involved. The Rust cdef is the C declarations with the
 export macro and the comments removed. Run it again when seams.h grows:
 
-    python3 bindings/rust/seams-sys/gen_sys.py include/seams.h bindings/rust/seams-sys/src/lib.rs
+    python3 dseams-sys/gen_sys.py path/to/seams-core/include/seams.h dseams-sys/src/lib.rs
 """
 
 import pathlib

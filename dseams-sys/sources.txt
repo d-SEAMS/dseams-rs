@@ -1,5 +1,5 @@
 # C++ translation units behind the C API (include/seams.h), relative to
-# the repository root. This is the link closure of src/seams_api.cpp over
+# the seams-core root. This is the link closure of src/seams_api.cpp over
 # libyodaLib built with Eigen and OpenMP and no optional backend.
 # build.rs compiles this list; vendor.py copies it into vendor/.
 src/seams_api.cpp
