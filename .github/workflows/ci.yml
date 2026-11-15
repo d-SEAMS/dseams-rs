@@ -62,7 +62,8 @@ jobs:
           cargo clippy --all-targets -- -D warnings
           cargo test -- --test-threads=1
           cargo test --examples -- --test-threads=1
-          cargo run --example minimal -- "$core/input/traj/genice_sI.lammpstrj"
+          cargo run --example lang_tasks
+          cargo run --example ice_ih -- "$core/input/traj/ice1h.lammpstrj"
           cargo doc --no-deps
       - name: Link through pkg-config
         working-directory: dseams-rs
@@ -93,19 +94,6 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           path: dseams-rs
-      - name: Read the seams-core pin
-        id: pin
-        run: |
-          . dseams-rs/seams-core.env
-          echo "repo=${SEAMS_CORE_REPO#https://github.com/}" >> "$GITHUB_OUTPUT"
-          echo "ref=$SEAMS_CORE_REF" >> "$GITHUB_OUTPUT"
-      # Only for the input fixtures; vendor.py downloads the sources itself.
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          repository: ${{ steps.pin.outputs.repo }}
-          ref: ${{ steps.pin.outputs.ref }}
-          path: seams-core
-          sparse-checkout: input/traj
       - name: Toolchains
         run: |
           rustup toolchain install stable --profile minimal --component clippy
@@ -120,7 +108,7 @@ jobs:
         run: |
           cargo +stable clippy --features bundled --all-targets -- -D warnings
           cargo +stable test --features bundled --test ice --examples -- --test-threads=1
-          cargo +stable run --features bundled --example minimal -- "$GITHUB_WORKSPACE/seams-core/input/traj/genice_sI.lammpstrj"
+          cargo +stable run --features bundled --example lang_tasks
       - name: Rustdoc as docs.rs builds it
         working-directory: dseams-rs
         env:
