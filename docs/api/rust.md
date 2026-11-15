@@ -111,8 +111,12 @@ fn main() -> Result<(), seams::Error> {
 ```
 
 `dseams/examples/minimal.rs` reads the GenIce sI cell (46 atoms, all
-clathrate, 54 six-rings):
-`cargo run --example minimal -- /path/to/seams-core/input/traj/genice_sI.lammpstrj`.
+clathrate, 54 six-rings) from `dseams/tests/data/genice_sI.lammpstrj`, or
+the dump given on the command line: `cargo run --example minimal`.
+`cargo test --examples` runs it, `ice_ih` (which prints
+`rust ice nop 128 q6 0.625855 hexagonal 128 rings 256`), and `lang_tasks`,
+the census every d-SEAMS language front prints; `docs/lang/task-rust.rst`
+shows that one.
 
 ```{literalinclude} ../../dseams/examples/minimal.rs
 :language: rust

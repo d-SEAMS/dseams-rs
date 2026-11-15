@@ -70,6 +70,14 @@ python3 dseams-sys/vendor.py --source ../seams-core  # or git archive it from a 
 cargo test --features bundled --test ice --examples
 ```
 
+## Examples
+
+`dseams/examples/` holds `ice` (a built diamond cell), `minimal` (the GenIce
+sI cell), `ice_ih` (the ice Ih census) and `lang_tasks` (the census every
+d-SEAMS language front prints, shown in `docs/lang/task-rust.rst`). Each
+reads its dump from `dseams/tests/data/` unless a path is given, and
+`cargo test --examples` checks its output.
+
 ## Regenerating the declarations
 
 ```bash
