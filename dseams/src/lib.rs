@@ -31,9 +31,9 @@
 //! # Ok::<(), seams::Error>(())
 //! ```
 //!
-//! The default build compiles a bundled `libseams`. Set `SEAMS_LIB_DIR`
-//! to link the `libseams` in that directory instead, or enable the
-//! `system` feature to find an installed one through pkg-config.
+//! `dseams-sys` links the `libseams` in `SEAMS_LIBDIR` when that is set,
+//! and otherwise finds an installed one through pkg-config. The `bundled`
+//! feature compiles a copy from the pinned seams-core sources instead.
 
 #![deny(missing_docs)]
 

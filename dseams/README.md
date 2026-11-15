@@ -32,8 +32,9 @@ fn main() -> Result<(), seams::Error> {
 }
 ```
 
-By default `dseams-sys` compiles a bundled libseams (x86_64, C++20 and
-OpenMP). Enable the `system` feature to link an installed libseams
-through pkg-config instead; see the `dseams-sys` README.
+`dseams-sys` links an installed libseams: the directory in `SEAMS_LIBDIR`,
+or the `seams` pkg-config module. The `bundled` feature compiles one from
+the pinned seams-core sources instead (x86_64, C++20 and OpenMP); see the
+`dseams-sys` README.
 
 Licensed under MIT.

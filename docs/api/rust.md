@@ -1,6 +1,6 @@
 # Rust
 
-`seams-sys` is the raw FFI crate. `seams` is the safe crate. A handle is an
+`dseams-sys` is the raw FFI crate. `dseams` is the safe crate. A handle is an
 owned value with `Drop`. A fallible call returns `Result<T, seams::Error>`.
 The error text is `seams_handle_error`. Coordinates and cutoffs are angstroms.
 A cell is nine LAMMPS numbers: origin, edge lengths, then `xy`, `xz`, `yz`.
@@ -14,16 +14,17 @@ there is an unrelated project. The library names stay `seams_sys` and
 dseams = "2.14.0"
 ```
 
-Without `SEAMS_LIB_DIR`, `dseams-sys` compiles a bundled copy of the C API
-and Eigen with the `cc` crate (x86_64, a C++20 compiler with OpenMP). That
-copy reads LAMMPS dumps and XYZ. The `system` feature links an installed
-libseams through pkg-config instead, with every reader it was built with.
-`python3 bindings/rust/seams-sys/vendor.py` fills `seams-sys/vendor/`
-before `cargo package`.
+`dseams-sys` links the shared libseams in `SEAMS_LIBDIR` when that is set,
+for example a meson build tree's `build/src`, with `SEAMS_INCLUDE` naming
+the header directories. Otherwise it finds the `seams` pkg-config module,
+2.14.0 or newer within major 2, with every reader that library was built
+with. The `bundled` feature compiles the C API and Eigen with the `cc`
+crate instead (x86_64, a C++20 compiler with OpenMP); that copy reads
+LAMMPS dumps and XYZ. `python3 dseams-sys/vendor.py` fills
+`dseams-sys/vendor/` from the seams-core commit in `seams-core.env`.
 
-To link a meson build instead, point `SEAMS_LIB_DIR` at the directory that
-contains `libseams.so` before `cargo build`. The same directory belongs on
-`LD_LIBRARY_PATH` at run time.
+The tests and examples of this workspace carry an rpath to `SEAMS_LIBDIR`.
+Other programs need that directory on `LD_LIBRARY_PATH` at run time.
 
 ## Quickstart
 
@@ -62,13 +63,13 @@ fn main() -> Result<(), seams::Error> {
 ```
 
 ```bash
-export SEAMS_LIB_DIR=$PWD/build/src
-export LD_LIBRARY_PATH=$PWD/build/src
-cargo test --manifest-path bindings/rust/Cargo.toml -- --test-threads=1
-cargo test --manifest-path bindings/rust/Cargo.toml --examples -- --test-threads=1
-cargo test --manifest-path bindings/rust/Cargo.toml --doc
-cargo clippy --manifest-path bindings/rust/Cargo.toml --all-targets -- -D warnings
-cargo fmt --manifest-path bindings/rust/Cargo.toml --all -- --check
+export SEAMS_LIBDIR=/path/to/seams-core/build/src
+export LD_LIBRARY_PATH=$SEAMS_LIBDIR
+cargo test -- --test-threads=1
+cargo test --examples -- --test-threads=1
+cargo test --doc
+cargo clippy --all-targets -- -D warnings
+cargo fmt --all -- --check
 ```
 
 `set_frame` takes the nine-number cell, including a non-zero tilt.
@@ -80,22 +81,20 @@ cargo fmt --manifest-path bindings/rust/Cargo.toml --all -- --check
 `density`, `fingerprint`, `contact_pairs`, `domains`, `prisms`,
 `monolayer`, `rings` with `vertices`, and `site_table` are the remaining
 safe wrappers. `Neighbours`, `Rings`, `Cages`, and `Fingerprint` free their
-handles on drop. `bindings/rust/seams/tests/cpp_match.rs` checks those
+handles on drop. `dseams/tests/cpp_match.rs` checks those
 values against the C++ path on ice Ih, sI, the XYZ file, the CON file,
 and the triclinic sH dump. It needs `SEAMS_CPP_ORACLE`, the
-`binding_oracle` executable of a meson build, and `SEAMS_SOURCE_ROOT`;
-`meson test language_fronts` sets both, and a plain `cargo test`
-without them skips it. On ice Ih it prints `rustcall hexagonal 128`,
+`binding_oracle` executable of a seams-core meson build configured with
+`-Dwith_tests=true`, and `SEAMS_SOURCE_ROOT`, that seams-core checkout.
+The CI workflow sets both; a plain `cargo test` without them skips it. On ice Ih it prints `rustcall hexagonal 128`,
 `rustcall q6bar 0.562448843702`, `rustcall vert 6 0`,
 `rustcall cages 128 0 0 0`, `rustcall knn 512`, and `rustcall sheet 256`.
 The sI signature prints `rustcall sig 2 40`.
 `System::count` is the number of points in the frame.
-`bindings/rust/seams/tests/ice.rs` is the `cargo test` that calls every
-safe wrapper. `meson test docs_api_rust` runs that test.
-`docs/examples/minimal_rust.rs` reads the
+`dseams/tests/ice.rs` is the `cargo test` that calls every
+safe wrapper. `dseams/examples/minimal.rs` reads the
 GenIce sI cell and calls `System::set_ortho`, `count`, `neighbour_degree`,
-`q4q6`, `chill_plus`, and `six_ring_fraction`. `meson test docs_examples`
-runs it.
+`q4q6`, `chill_plus`, and `six_ring_fraction`.
 
 The eight-atom cubic cell is `seams::diamond8`. CHILL+ labels every atom cubic.
 
@@ -111,24 +110,24 @@ fn main() -> Result<(), seams::Error> {
 }
 ```
 
-`docs/examples/minimal_rust.rs` reads the GenIce sI cell (46 atoms, all
-clathrate, 54 six-rings). `cargo test` runs it through
-`docs/examples/run_binding.py`.
+`dseams/examples/minimal.rs` reads the GenIce sI cell (46 atoms, all
+clathrate, 54 six-rings):
+`cargo run --example minimal -- /path/to/seams-core/input/traj/genice_sI.lammpstrj`.
 
-```{literalinclude} ../../../docs/examples/minimal_rust.rs
+```{literalinclude} ../../dseams/examples/minimal.rs
 :language: rust
 ```
 
-The 64-atom diamond in `bindings/rust/seams/tests/ice.rs` checks both CHILL+
+The 64-atom diamond in `dseams/tests/ice.rs` checks both CHILL+
 rules, a q6 mean above 0.3, four neighbours, and a six-ring fraction above
 one half.
 
-```{literalinclude} ../../../bindings/rust/seams/tests/ice.rs
+```{literalinclude} ../../dseams/tests/ice.rs
 :language: rust
 :lines: 29-63
 ```
 
-`bindings/rust/seams-sys` publishes each name from `include/seams.h`. The one-line summary, parameters, ownership, and error codes for those names are the C symbol reference.
+`dseams-sys` publishes each name from `include/seams.h`. The one-line summary, parameters, ownership, and error codes for those names are the C symbol reference.
 
 ## Concepts
 
@@ -151,8 +150,8 @@ a handle. Two frames on two threads may run `steinhardt`, `ql`, `q4q6`, or
 `q6bar` at the same time; the Steinhardt scratch belongs to the calling thread.
 `set_num_threads` is process-global.
 
-`cargo doc --manifest-path bindings/rust/Cargo.toml --no-deps` is the rustdoc.
-With `SEAMS_LIB_DIR` set and `sphinxcontrib-rust` installed, Sphinx renders
+`cargo doc --no-deps` is the rustdoc.
+With `SEAMS_LIBDIR` set and `sphinxcontrib-rust` installed, Sphinx renders
 that rustdoc under `crates/seams/lib`, the same extension rgpot uses for
 `rgpot-core`.
 
@@ -233,8 +232,8 @@ their C pointers. Moving a handle transfers that ownership. Dropping it
 calls the matching `seams_*_destroy`. The raw pointer is not part of the
 public API.
 
-`bindings/rust/seams/tests/cpp_match.rs` reruns every analysis above against
-`tests/binding_oracle.cpp` and requires the same numbers.
+`dseams/tests/cpp_match.rs` reruns every analysis above against
+seams-core's `tests/binding_oracle.cpp` and requires the same numbers.
 
 <!-- API_SYMBOLS_BEGIN -->
 
@@ -254,7 +253,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: named in the rustdoc on this item. Lengths are angstroms.
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### BondOptions
 
@@ -270,7 +269,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: named in the rustdoc on this item. Lengths are angstroms.
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### Brine
 
@@ -286,7 +285,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: named in the rustdoc on this item. Lengths are angstroms.
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### BrineFronts
 
@@ -302,7 +301,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: named in the rustdoc on this item. Lengths are angstroms.
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### BrineOptions
 
@@ -318,7 +317,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: named in the rustdoc on this item. Lengths are angstroms.
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### BrineProfile
 
@@ -334,7 +333,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: handle
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### CageCounts
 
@@ -350,7 +349,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: named in the rustdoc on this item. Lengths are angstroms.
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### CageLabel
 
@@ -366,7 +365,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: named in the rustdoc on this item. Lengths are angstroms.
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### CageOptions
 
@@ -382,7 +381,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: named in the rustdoc on this item. Lengths are angstroms.
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### Cages
 
@@ -398,7 +397,7 @@ Errors: Constructors return Err(Error) when the C call fails. Error.code is the 
 
 Units: handle
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### ChillOptions
 
@@ -414,7 +413,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: named in the rustdoc on this item. Lengths are angstroms.
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### ChillRule
 
@@ -430,7 +429,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: named in the rustdoc on this item. Lengths are angstroms.
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### Classification
 
@@ -446,7 +445,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: named in the rustdoc on this item. Lengths are angstroms.
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### Contacts
 
@@ -462,7 +461,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: named in the rustdoc on this item. Lengths are angstroms.
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### DensityOptions
 
@@ -478,7 +477,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: named in the rustdoc on this item. Lengths are angstroms.
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### DensityProfile
 
@@ -494,7 +493,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: named in the rustdoc on this item. Lengths are angstroms.
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### Distribution
 
@@ -510,7 +509,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: named in the rustdoc on this item. Lengths are angstroms.
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### DistributionOptions
 
@@ -526,7 +525,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: named in the rustdoc on this item. Lengths are angstroms.
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### DomainOptions
 
@@ -542,7 +541,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: named in the rustdoc on this item. Lengths are angstroms.
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### DomainReport
 
@@ -558,7 +557,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: named in the rustdoc on this item. Lengths are angstroms.
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### DomainSubset
 
@@ -574,7 +573,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: named in the rustdoc on this item. Lengths are angstroms.
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### Error
 
@@ -590,7 +589,7 @@ Errors: This is the error type. code is the seams_status value and message is se
 
 Units: code is dimensionless; message is text
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### Fingerprint
 
@@ -606,7 +605,7 @@ Errors: Constructors return Err(Error) when the C call fails. Error.code is the 
 
 Units: handle
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### FingerprintOptions
 
@@ -622,7 +621,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: named in the rustdoc on this item. Lengths are angstroms.
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### Graph
 
@@ -638,7 +637,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: named in the rustdoc on this item. Lengths are angstroms.
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### KnnOptions
 
@@ -654,7 +653,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: named in the rustdoc on this item. Lengths are angstroms.
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### Label
 
@@ -670,7 +669,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: named in the rustdoc on this item. Lengths are angstroms.
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### NeighbourOptions
 
@@ -686,7 +685,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: named in the rustdoc on this item. Lengths are angstroms.
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### NeighbourPair
 
@@ -702,7 +701,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: named in the rustdoc on this item. Lengths are angstroms.
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### NeighbourPairs
 
@@ -718,7 +717,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: named in the rustdoc on this item. Lengths are angstroms.
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### Neighbours
 
@@ -734,7 +733,7 @@ Errors: Constructors return Err(Error) when the C call fails. Error.code is the 
 
 Units: handle
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### OrderOptions
 
@@ -750,7 +749,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: named in the rustdoc on this item. Lengths are angstroms.
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### Pockets
 
@@ -766,7 +765,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: named in the rustdoc on this item. Lengths are angstroms.
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### PrismCensus
 
@@ -782,7 +781,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: named in the rustdoc on this item. Lengths are angstroms.
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### PrismOptions
 
@@ -798,7 +797,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: named in the rustdoc on this item. Lengths are angstroms.
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### Q4Q6
 
@@ -814,7 +813,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: named in the rustdoc on this item. Lengths are angstroms.
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### Q6Bar
 
@@ -830,7 +829,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: named in the rustdoc on this item. Lengths are angstroms.
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### Q6BarOptions
 
@@ -846,7 +845,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: named in the rustdoc on this item. Lengths are angstroms.
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### Rejection
 
@@ -862,7 +861,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: named in the rustdoc on this item. Lengths are angstroms.
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### RingIter
 
@@ -878,7 +877,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: named in the rustdoc on this item. Lengths are angstroms.
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### RingOptions
 
@@ -894,7 +893,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: named in the rustdoc on this item. Lengths are angstroms.
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### RingSymmetry
 
@@ -910,7 +909,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: named in the rustdoc on this item. Lengths are angstroms.
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### Rings
 
@@ -926,7 +925,7 @@ Errors: Constructors return Err(Error) when the C call fails. Error.code is the 
 
 Units: handle
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### RunningCoordination
 
@@ -942,7 +941,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: named in the rustdoc on this item. Lengths are angstroms.
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### SheetOptions
 
@@ -958,7 +957,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: named in the rustdoc on this item. Lengths are angstroms.
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### SignatureMatch
 
@@ -974,7 +973,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: named in the rustdoc on this item. Lengths are angstroms.
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### SignatureOptions
 
@@ -990,7 +989,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: named in the rustdoc on this item. Lengths are angstroms.
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### SiteKind
 
@@ -1006,7 +1005,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: named in the rustdoc on this item. Lengths are angstroms.
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### Status
 
@@ -1022,7 +1021,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: named in the rustdoc on this item. Lengths are angstroms.
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### Steinhardt
 
@@ -1038,7 +1037,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: named in the rustdoc on this item. Lengths are angstroms.
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### SteinhardtOptions
 
@@ -1054,7 +1053,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: named in the rustdoc on this item. Lengths are angstroms.
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### System
 
@@ -1070,7 +1069,7 @@ Errors: Constructors return Err(Error) when the C call fails. Error.code is the 
 
 Units: handle
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### abi
 
@@ -1086,7 +1085,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: named in the rustdoc on this item. Lengths are angstroms.
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### atom
 
@@ -1102,7 +1101,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: named in the rustdoc on this item. Lengths are angstroms.
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### brine
 
@@ -1118,7 +1117,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: named in the rustdoc on this item. Lengths are angstroms.
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### cages
 
@@ -1134,7 +1133,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: cutoff in angstrom; codes are dimensionless
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### chill
 
@@ -1150,7 +1149,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: cutoff in angstrom; codes are dimensionless
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### chill_plus
 
@@ -1166,7 +1165,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: cutoff in angstrom; graph and rule are dimensionless codes
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### code
 
@@ -1182,7 +1181,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: named in the rustdoc on this item. Lengths are angstroms.
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### contact_pairs
 
@@ -1198,7 +1197,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: dimensionless counts
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### coordination
 
@@ -1214,7 +1213,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: rmax in angstrom; coordination is dimensionless
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### count
 
@@ -1230,7 +1229,7 @@ Errors: None for the integer queries. version copies library text.
 
 Units: dimensionless count
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### counts
 
@@ -1246,7 +1245,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: dimensionless counts
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### degrees
 
@@ -1262,7 +1261,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: named in the rustdoc on this item. Lengths are angstroms.
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### density
 
@@ -1278,7 +1277,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: named in the rustdoc on this item. Lengths are angstroms.
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### diamond8
 
@@ -1294,7 +1293,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: named in the rustdoc on this item. Lengths are angstroms.
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### domains
 
@@ -1310,7 +1309,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: cutoff in angstrom; percolation is dimensionless
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### fingerprint
 
@@ -1326,7 +1325,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: cutoff in angstrom; counts are dimensionless
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### fraction
 
@@ -1342,7 +1341,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: named in the rustdoc on this item. Lengths are angstroms.
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### fronts
 
@@ -1358,7 +1357,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: named in the rustdoc on this item. Lengths are angstroms.
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### hbonds
 
@@ -1374,7 +1373,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: distances in angstrom; angle in degrees; count is dimensionless
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### histogram
 
@@ -1390,7 +1389,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: named in the rustdoc on this item. Lengths are angstroms.
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### iter
 
@@ -1406,7 +1405,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: named in the rustdoc on this item. Lengths are angstroms.
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### key
 
@@ -1422,7 +1421,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: text
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### knn
 
@@ -1438,7 +1437,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: cutoff in angstrom; k is a dimensionless count
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### label_name
 
@@ -1454,7 +1453,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: named in the rustdoc on this item. Lengths are angstroms.
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### labels
 
@@ -1470,7 +1469,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: named in the rustdoc on this item. Lengths are angstroms.
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### message
 
@@ -1486,7 +1485,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: named in the rustdoc on this item. Lengths are angstroms.
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### monolayer
 
@@ -1502,7 +1501,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: cutoff in angstrom; area in square angstrom
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### neighbour_degree
 
@@ -1518,7 +1517,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: cutoff in angstrom; degrees are dimensionless
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### neighbours
 
@@ -1534,7 +1533,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: named in the rustdoc on this item. Lengths are angstroms.
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### new
 
@@ -1550,7 +1549,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: named in the rustdoc on this item. Lengths are angstroms.
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### nframes
 
@@ -1566,7 +1565,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: named in the rustdoc on this item. Lengths are angstroms.
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### nnz
 
@@ -1582,7 +1581,7 @@ Errors: None for the integer queries. version copies library text.
 
 Units: dimensionless count
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### num_threads
 
@@ -1598,7 +1597,7 @@ Errors: None for the integer queries. version copies library text.
 
 Units: dimensionless thread count
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### pairs
 
@@ -1614,7 +1613,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: named in the rustdoc on this item. Lengths are angstroms.
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### pockets
 
@@ -1630,7 +1629,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: named in the rustdoc on this item. Lengths are angstroms.
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### prisms
 
@@ -1646,7 +1645,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: named in the rustdoc on this item. Lengths are angstroms.
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### profile
 
@@ -1662,7 +1661,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: named in the rustdoc on this item. Lengths are angstroms.
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### q4q6
 
@@ -1678,7 +1677,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: cutoff in angstrom; q4 and q6 are dimensionless
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### q6bar
 
@@ -1694,7 +1693,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: named in the rustdoc on this item. Lengths are angstroms.
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### ql
 
@@ -1710,7 +1709,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: named in the rustdoc on this item. Lengths are angstroms.
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### rdf
 
@@ -1726,7 +1725,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: rmax in angstrom; g is dimensionless; volume in cubic angstrom
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### read
 
@@ -1742,7 +1741,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: frame index is 1-based; coordinates in angstrom
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### rejection
 
@@ -1758,7 +1757,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: named in the rustdoc on this item. Lengths are angstroms.
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### ring_symmetry_name
 
@@ -1774,7 +1773,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: named in the rustdoc on this item. Lengths are angstroms.
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### rings
 
@@ -1790,7 +1789,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: cutoff in angstrom; sizes are dimensionless
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### running_cn
 
@@ -1806,7 +1805,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: rmax in angstrom; coordination is dimensionless
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### set_atoms
 
@@ -1822,7 +1821,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: named in the rustdoc on this item. Lengths are angstroms.
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### set_frame
 
@@ -1838,7 +1837,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: coordinates and box lengths in angstrom
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### set_num_threads
 
@@ -1854,7 +1853,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: dimensionless thread count
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### set_ortho
 
@@ -1870,7 +1869,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: coordinates and edge lengths in angstrom
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### signature_cages
 
@@ -1886,7 +1885,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: cutoff in angstrom; counts are dimensionless
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### site_table
 
@@ -1902,7 +1901,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: dimensionless site codes
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### six_ring_fraction
 
@@ -1918,7 +1917,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: cutoff in angstrom; fraction is dimensionless
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### size
 
@@ -1934,7 +1933,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: named in the rustdoc on this item. Lengths are angstroms.
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### status
 
@@ -1950,7 +1949,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: named in the rustdoc on this item. Lengths are angstroms.
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### steinhardt
 
@@ -1966,7 +1965,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: cutoff in angstrom; q_l is dimensionless
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### symmetry
 
@@ -1982,7 +1981,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: named in the rustdoc on this item. Lengths are angstroms.
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### version
 
@@ -1998,7 +1997,7 @@ Errors: None for the integer queries. version copies library text.
 
 Units: text
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 
 ### vertices
 
@@ -2014,16 +2013,7 @@ Errors: Error.code is the seams_status. Error.message is seams_handle_error when
 
 Units: dimensionless indices
 
-Example: `docs/examples/minimal_rust.rs`
+Example: `dseams/examples/minimal.rs`
 <!-- API_SYMBOLS_END -->
 
-
-## Structure still
-
-```{figure} ../tutorials/molecules/rust/overlay-web.png
-:alt: Molecule still for this front
-:width: 480px
-
-Ice Ih colored by published CHILL+, drawn with chemparseplot. `python docs/scripts/render_molecules.py --slug rust` writes the 2400 by 1800 PNG.
-```
 
