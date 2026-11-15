@@ -17,6 +17,7 @@ include = [
   "/build.rs",
   "/tests/ice.rs",
   "/examples/**",
+  "/tests/data/**",
   "/README.md",
   "/LICENSE",
 ]

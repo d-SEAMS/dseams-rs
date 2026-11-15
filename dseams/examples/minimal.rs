@@ -1,5 +1,8 @@
 // Copyright (c) d-SEAMS developers
 //! Read the GenIce sI cell through the safe seams crate.
+//!
+//! `cargo run --example minimal [dump]` reads `tests/data/genice_sI.lammpstrj`
+//! when no path is given.
 use seams::{num_threads, set_num_threads, version, System};
 use std::env;
 use std::fs::File;
@@ -60,9 +63,13 @@ fn read_dump(path: &str) -> (Vec<f64>, [f64; 3]) {
     (xyz, edges)
 }
 
-fn main() {
-    let path = env::args().nth(1).expect("fixture path");
-    let (xyz, edges) = read_dump(&path);
+const FIXTURE: &str = concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/tests/data/genice_sI.lammpstrj"
+);
+
+fn run(path: &str) -> String {
+    let (xyz, edges) = read_dump(path);
     assert_eq!(xyz.len() / 3, 46);
     set_num_threads(1).expect("threads");
     assert_eq!(num_threads(), 1);
@@ -82,5 +89,16 @@ fn main() {
     assert_eq!(ice.counts[4], 46);
     assert_eq!(six, 54);
     assert!(mean > 0.5);
-    println!("rust example ok {} q6 {:.3}", version(), mean);
+    format!("rust example ok {} q6 {:.3}", version(), mean)
+}
+
+fn main() {
+    let path = env::args().nth(1).unwrap_or_else(|| FIXTURE.to_string());
+    println!("{}", run(&path));
+}
+
+#[test]
+fn genice_si_cell() {
+    let line = run(FIXTURE);
+    assert!(line.starts_with("rust example ok "), "{line}");
 }
