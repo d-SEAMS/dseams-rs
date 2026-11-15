@@ -1,0 +1,37 @@
+# dseams-rs
+
+> dseams-rs holds the Rust crates for d-SEAMS: `dseams-sys`, raw declarations for the libseams C API, and `dseams`, safe handles for CHILL and CHILL+ ice labels, Steinhardt order parameters, primitive rings, cages, RDFs, hydrogen bonds and topological fingerprints of molecular simulation frames.
+
+The crates.io packages are `dseams-sys` and `dseams`; the library names are `seams_sys` and `seams`, so code says `use seams::System`. Rust 1.85 or newer builds them. `dseams-sys` links the shared libseams in `SEAMS_LIBDIR`, else the `seams` pkg-config module (2.14 <= v < 3); the `bundled` feature compiles one from the seams-core commit in `seams-core.env` instead. The crate version is the seams-core release it binds.
+
+## Rust API
+
+- [dseams on docs.rs](https://docs.rs/dseams): The safe crate: every wrapper, with a doctest each.
+- [seams::System](https://docs.rs/dseams/latest/seams/struct.System.html): One frame; `read`, `set_ortho`, `set_frame` and every analysis call.
+- [seams::Error](https://docs.rs/dseams/latest/seams/enum.Error.html): A library status with its message from `seams_handle_error`, an unnamed status code, or a rejected argument.
+- [seams::ChillOptions](https://docs.rs/dseams/latest/seams/struct.ChillOptions.html): Cutoff, species filter, neighbour graph and threshold table for CHILL and CHILL+.
+- [seams::Rings](https://docs.rs/dseams/latest/seams/struct.Rings.html): Primitive rings, with histograms, fractions and vertex iteration.
+- [dseams-sys on docs.rs](https://docs.rs/dseams-sys): Raw declarations generated from `seams.h`.
+
+## Repository docs
+
+- [README](https://github.com/d-SEAMS/dseams-rs/blob/main/README.md): Install, how libseams is found, building against seams-core, the bundled build, publishing.
+- [API page](https://github.com/d-SEAMS/dseams-rs/blob/main/docs/api/rust.md): Concepts, ownership, threading, every call with its recorded output, and the symbol reference.
+- [Tutorial](https://github.com/d-SEAMS/dseams-rs/blob/main/docs/tutorials/rust.md): Build against a meson libseams and run the ice test and example.
+- [Language task](https://github.com/d-SEAMS/dseams-rs/blob/main/docs/lang/task-rust.rst): The ice Ih census every d-SEAMS language front prints, in Rust.
+- [dseams-sys README](https://github.com/d-SEAMS/dseams-rs/blob/main/dseams-sys/README.md): Link order, the `bundled` feature, `DEP_SEAMS_RPATH`, licenses of the bundled Eigen.
+- [CHANGELOG](https://github.com/d-SEAMS/dseams-rs/blob/main/CHANGELOG.md): Released changes; unreleased fragments are in `changelog.d/`.
+
+## Engine
+
+- [d-SEAMS/seams-core](https://github.com/d-SEAMS/seams-core): The C++ engine, the libseams C API, the CLI and the C++ oracle these tests compare against.
+- [seams.h](https://github.com/d-SEAMS/seams-core/blob/main/include/seams.h): The C API header `dseams-sys` is generated from.
+- [docs.dseams.info](https://docs.dseams.info): d-SEAMS documentation: analyses, C API reference and every language front.
+
+## Other language bindings
+
+- [PydSEAMSlib](https://github.com/d-SEAMS/PydSEAMSlib): Python.
+- [Dseams.jl](https://github.com/d-SEAMS/Dseams.jl): Julia.
+- [dseams-r](https://github.com/d-SEAMS/dseams-r): R.
+- [dseams-fortran](https://github.com/d-SEAMS/dseams-fortran): Fortran.
+- [yodaStruct](https://github.com/d-SEAMS/yodaStruct): Lua.
