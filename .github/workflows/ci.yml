@@ -1,0 +1,132 @@
+name: CI
+# Builds seams-core at the commit in seams-core.env and tests both crates
+# against it. Nothing here publishes: cargo publish runs with --dry-run.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
+
+permissions:
+  contents: read
+
+jobs:
+  libseams:
+    name: Against a seams-core build
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: dseams-rs
+      - name: Read the seams-core pin
+        id: pin
+        run: |
+          . dseams-rs/seams-core.env
+          echo "repo=${SEAMS_CORE_REPO#https://github.com/}" >> "$GITHUB_OUTPUT"
+          echo "ref=$SEAMS_CORE_REF" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ steps.pin.outputs.repo }}
+          ref: ${{ steps.pin.outputs.ref }}
+          path: seams-core
+      - uses: prefix-dev/setup-pixi@f00437f565399d418b0acc85936d12c1fb668347 # v0.10.1
+        with:
+          manifest-path: seams-core/pixi.toml
+          environments: default
+          cache-key: pixi-dseams-rs-
+      - name: Install Rust
+        run: |
+          rustup toolchain install stable --profile minimal --component rustfmt,clippy
+          rustup default stable
+      - name: Build libseams and the C++ oracle
+        working-directory: seams-core
+        run: |
+          pixi run meson setup bbdir -Dwith_python=false -Dwith_tests=true -Dwith_cli=false
+          pixi run ninja -C bbdir src/libseams.so bindings/binding_oracle
+      - name: Format, lint, test
+        working-directory: dseams-rs
+        env:
+          OMP_NUM_THREADS: "1"
+          RUSTDOCFLAGS: "-D warnings"
+        run: |
+          core="$GITHUB_WORKSPACE/seams-core"
+          export SEAMS_LIBDIR="$core/bbdir/src"
+          export SEAMS_INCLUDE="$core/include:$core/bbdir/src"
+          export SEAMS_CPP_ORACLE="$core/bbdir/bindings/binding_oracle"
+          export SEAMS_SOURCE_ROOT="$core"
+          cargo fmt --all -- --check
+          cargo clippy --all-targets -- -D warnings
+          cargo test -- --test-threads=1
+          cargo test --examples -- --test-threads=1
+          cargo run --example minimal -- "$core/input/traj/genice_sI.lammpstrj"
+          cargo doc --no-deps
+      - name: Link through pkg-config
+        working-directory: dseams-rs
+        env:
+          OMP_NUM_THREADS: "1"
+          CARGO_TARGET_DIR: target/pkgconfig
+        run: |
+          export PKG_CONFIG_PATH="$GITHUB_WORKSPACE/seams-core/bbdir/meson-uninstalled"
+          cargo test -- --test-threads=1
+      - name: Declarations match seams.h
+        working-directory: dseams-rs
+        run: |
+          python3 dseams-sys/gen_sys.py "$GITHUB_WORKSPACE/seams-core/include/seams.h" "$RUNNER_TEMP/lib.rs"
+          diff -u dseams-sys/src/lib.rs "$RUNNER_TEMP/lib.rs"
+      # vendor/ is generated and gitignored, so cargo sees it as uncommitted.
+      - name: Package and dry-run publish
+        working-directory: dseams-rs
+        run: |
+          export SEAMS_LIBDIR="$GITHUB_WORKSPACE/seams-core/bbdir/src"
+          python3 dseams-sys/vendor.py --source "$GITHUB_WORKSPACE/seams-core"
+          cargo package --workspace --allow-dirty
+          cargo publish --workspace --dry-run --allow-dirty
+
+  bundled:
+    name: Bundled libseams
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: dseams-rs
+      - name: Read the seams-core pin
+        id: pin
+        run: |
+          . dseams-rs/seams-core.env
+          echo "repo=${SEAMS_CORE_REPO#https://github.com/}" >> "$GITHUB_OUTPUT"
+          echo "ref=$SEAMS_CORE_REF" >> "$GITHUB_OUTPUT"
+      # Only for the input fixtures; vendor.py downloads the sources itself.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ steps.pin.outputs.repo }}
+          ref: ${{ steps.pin.outputs.ref }}
+          path: seams-core
+          sparse-checkout: input/traj
+      - name: Toolchains
+        run: |
+          rustup toolchain install stable --profile minimal --component clippy
+          rustup toolchain install 1.85.0 --profile minimal
+      - name: Vendor the pinned seams-core sources and Eigen
+        working-directory: dseams-rs
+        run: python3 dseams-sys/vendor.py
+      - name: Test with the bundled libseams
+        working-directory: dseams-rs
+        env:
+          OMP_NUM_THREADS: "1"
+        run: |
+          cargo +stable clippy --features bundled --all-targets -- -D warnings
+          cargo +stable test --features bundled --test ice --examples -- --test-threads=1
+          cargo +stable run --features bundled --example minimal -- "$GITHUB_WORKSPACE/seams-core/input/traj/genice_sI.lammpstrj"
+      - name: Rustdoc as docs.rs builds it
+        working-directory: dseams-rs
+        env:
+          DOCS_RS: "1"
+          RUSTDOCFLAGS: "-D warnings"
+        run: cargo +stable doc --no-deps
+      - name: Minimum supported Rust
+        working-directory: dseams-rs
+        run: cargo +1.85.0 build --features bundled --all-targets
