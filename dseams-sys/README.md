@@ -30,7 +30,8 @@ libclang. `build.rs` takes the first of:
    Eigen 3.4.0 with the `cc` crate, from `vendor/`. The published crate
    ships `vendor/`; in a git checkout, run `python3 dseams-sys/vendor.py`
    first or set `SEAMS_SOURCE_DIR` to a seams-core checkout at the commit
-   in `seams-core.env`. This needs a C++20 compiler with OpenMP (GCC 11
+   in `seams-core.env`, with Eigen 3.4 from `EIGEN3_INCLUDE_DIR` or
+   pkg-config. This needs a C++20 compiler with OpenMP (GCC 11
    or newer) on x86_64; the shell classifier uses AVX2. The bundled build
    reads LAMMPS dumps and XYZ, not `.con` or the chemfiles formats.
 3. Otherwise pkg-config module `seams`, at least 2.14.0 and below 3.0.0

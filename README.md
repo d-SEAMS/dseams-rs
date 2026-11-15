@@ -125,7 +125,9 @@ rebuilt library without a `cargo clean`. Unset `SEAMS_LIBDIR` and set
 `PKG_CONFIG_PATH=$PWD/../seams-core/bbdir/meson-uninstalled` to exercise
 the pkg-config path against the same tree. With `dseams-sys/vendor/`
 absent, `SEAMS_SOURCE_DIR=$PWD/../seams-core` and `--features bundled`
-compile the bundled copy from that checkout without running `vendor.py`.
+compile the bundled copy from that checkout without running `vendor.py`;
+Eigen 3.4 then comes from `EIGEN3_INCLUDE_DIR` (the pixi environment has it
+at `../seams-core/.pixi/envs/default/include/eigen3`) or pkg-config.
 
 ### Release order
 
