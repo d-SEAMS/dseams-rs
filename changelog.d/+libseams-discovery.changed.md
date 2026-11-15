@@ -1,0 +1,1 @@
+`dseams-sys` links an installed libseams by default: `SEAMS_LIBDIR` (with `SEAMS_INCLUDE`), then the `seams` pkg-config module within 2.14 <= v < 3. The opt-in `bundled` feature compiles one from the pinned seams-core sources and replaces both the old default bundled build and the `system` feature.
