@@ -99,6 +99,48 @@ cargo publish --workspace --dry-run --allow-dirty
 
 `--allow-dirty` is there because `vendor/` is generated and gitignored.
 
+## Development
+
+### Relation to seams-core
+
+seams-core owns the engine, the C API and its header, the CLI, and the C++
+oracle `binding_oracle` that `dseams/tests/cpp_match.rs` compares against.
+This repository owns the Rust side only. A new analysis, a changed number or
+a new C function lands in seams-core first; it is bound here once a
+seams-core commit carries it, by moving `SEAMS_CORE_REF` in
+`seams-core.env` and regenerating `dseams-sys/src/lib.rs`. CI always builds
+seams-core at that ref.
+
+### Against a local seams-core checkout
+
+Keep seams-core next to this repository, as in
+[Building and testing against a seams-core build](#building-and-testing-against-a-seams-core-build):
+`meson setup` with `-Dwith_tests=true` also builds the oracle, and
+`SEAMS_LIBDIR` points at its `bbdir/src`.
+
+To try an unreleased engine change, check out that branch in
+`../seams-core` instead of the pinned ref and rebuild `bbdir`. The tests
+load `libseams.so` through the rpath at run time, so they pick up the
+rebuilt library without a `cargo clean`. Unset `SEAMS_LIBDIR` and set
+`PKG_CONFIG_PATH=$PWD/../seams-core/bbdir/meson-uninstalled` to exercise
+the pkg-config path against the same tree. With `dseams-sys/vendor/`
+absent, `SEAMS_SOURCE_DIR=$PWD/../seams-core` and `--features bundled`
+compile the bundled copy from that checkout without running `vendor.py`.
+
+### Release order
+
+1. seams-core tags `vX.Y.Z` on d-SEAMS/seams-core.
+2. Here, `seams-core.env` moves to `SEAMS_CORE_REPO=https://github.com/d-SEAMS/seams-core`
+   and `SEAMS_CORE_REF=vX.Y.Z`, the workspace version and the `dseams-sys`
+   requirement become `X.Y.Z`, `towncrier build --version X.Y.Z` writes the
+   changelog, and CI passes on that commit.
+3. `python3 dseams-sys/vendor.py`, then `cargo publish -p dseams-sys --allow-dirty`.
+4. `cargo publish -p dseams`, which needs that `dseams-sys` on crates.io.
+5. Tag `vX.Y.Z` here.
+
+Commits follow Conventional Commits, and each user-visible change adds a
+fragment under `changelog.d/`.
+
 ## Documentation
 
 `docs/api/rust.md` is the API page and `docs/tutorials/rust.md` the
