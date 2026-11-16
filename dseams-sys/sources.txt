@@ -13,6 +13,7 @@ src/cage_enum.cpp
 src/cage_pack.cpp
 src/chemfiles_io.cpp
 src/chill_plus_scheme.cpp
+src/chordless.cpp
 src/cluster.cpp
 src/cutoff_csr.cpp
 src/density.cpp
@@ -32,11 +33,13 @@ src/seams_c_api.cpp
 src/seams_input.cpp
 src/seams_output.cpp
 src/shapeMatch.cpp
+src/shell2_count.cpp
 src/shell_kernel.cpp
 src/site.cpp
 src/steinhardt_parallel.cpp
 src/topo_bulk.cpp
 src/topo_fingerprint.cpp
+src/topo_neighbour_key.cpp
 src/topo_one_dim.cpp
 src/tum_offload.cpp
 src/water_select.cpp
