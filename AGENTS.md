@@ -59,7 +59,7 @@ checks from the repository root:
 ```bash
 . ./seams-core.env
 git -C ../seams-core checkout "$SEAMS_CORE_REF"
-(cd ../seams-core && pixi run meson setup bbdir -Dwith_python=false -Dwith_tests=true -Dwith_cli=false \
+(cd ../seams-core && pixi run meson setup bbdir -Dwith_tests=true -Dwith_cli=false \
   && pixi run ninja -C bbdir src/libseams.so bindings/binding_oracle)
 
 export SEAMS_LIBDIR=$PWD/../seams-core/bbdir/src

@@ -42,7 +42,7 @@ seams-core commit that CI builds and that `vendor.py` vendors; it moves to the
 git clone https://github.com/d-SEAMS/seams-core
 cd seams-core
 git checkout "$(. ../dseams-rs/seams-core.env && echo "$SEAMS_CORE_REF")"
-pixi run meson setup bbdir -Dwith_python=false -Dwith_tests=true -Dwith_cli=false
+pixi run meson setup bbdir -Dwith_tests=true -Dwith_cli=false
 pixi run ninja -C bbdir src/libseams.so bindings/binding_oracle
 cd ../dseams-rs
 
