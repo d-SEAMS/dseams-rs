@@ -123,7 +123,8 @@ it through the workspace.
 1. seams-core tags the release (`vX.Y.Z` on d-SEAMS/seams-core).
 2. Here: set `SEAMS_CORE_REPO=https://github.com/d-SEAMS/seams-core` and
    `SEAMS_CORE_REF=vX.Y.Z`, set `workspace.package.version` and the
-   `dseams-sys` requirement in `Cargo.toml` to `X.Y.Z`, run
+   `dseams-sys` requirement in `Cargo.toml` and `version` in
+   `CITATION.cff` to `X.Y.Z`, run
    `towncrier build --version X.Y.Z`, and wait for CI on that commit.
 3. `python3 dseams-sys/vendor.py`, then `cargo publish -p dseams-sys --allow-dirty`
    (`vendor/` is generated and ignored, so cargo counts it as uncommitted).
