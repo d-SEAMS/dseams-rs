@@ -10,4 +10,9 @@ build-dir = "book"
 
 [output.html]
 site-url = "/"
+default-theme = "light"
+preferred-dark-theme = "coal"
 git-repository-url = "https://github.com/d-SEAMS/dseams-rs"
+
+[output.html.playground]
+runnable = false

@@ -146,7 +146,7 @@ jobs:
       - name: Rustdoc coverage
         env:
           DOCS_RS: "1"
-          RUSTDOCFLAGS: "-D warnings"
+          RUSTDOCFLAGS: "-D warnings --extend-css docs/rustdoc/dseams-rustdoc.css --html-before-content docs/rustdoc/dseams-rustdoc-before.html --html-in-header docs/rustdoc/dseams-rustdoc-head.html"
         run: |
           cargo doc --locked --no-deps --workspace
           python3 docs/check_rustdoc.py target/doc
