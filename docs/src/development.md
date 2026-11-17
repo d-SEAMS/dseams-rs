@@ -45,8 +45,8 @@ unset. `dseams/examples/` holds `ice`, `minimal`, `ice_ih`, `lang_tasks`,
 and `binding_overhead`. `cargo test --examples` checks their output.
 
 Unset `SEAMS_LIBDIR` and set
-`PKG_CONFIG_PATH=$PWD/../seams-core/bbdir/meson-uninstalled` to test the
-pkg-config path against the same tree.
+`PKG_CONFIG_PATH=$PWD/../seams-core/bbdir/meson-uninstalled` with
+`--no-default-features` to test the pkg-config path against the same tree.
 
 The bundled feature, from a filled `dseams-sys/vendor/`:
 

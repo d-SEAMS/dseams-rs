@@ -26,18 +26,20 @@ libclang. `build.rs` takes the first of:
    `libseams` in that directory, a meson build tree (`build/src`) or an
    install prefix (`$prefix/lib`). `SEAMS_INCLUDE`, a path list, names
    the header directories; for a prefix it defaults to `$prefix/include`.
-2. Feature `bundled`: compile the C API, the analyses behind it, and
-   Eigen 3.4.0 with the `cc` crate, from `vendor/`. The published crate
-   ships `vendor/`; in a git checkout, run `python3 dseams-sys/vendor.py`
-   first or set `SEAMS_SOURCE_DIR` to a seams-core checkout at the tag
-   in `seams-core.env`, with Eigen 3.4 from `EIGEN3_INCLUDE_DIR` or
-   pkg-config. This needs a C++20 compiler with OpenMP (GCC 11
-   or newer) on x86_64; the shell classifier uses AVX2. The bundled build
-   reads LAMMPS dumps and XYZ, not `.con` or the chemfiles formats.
-3. Otherwise pkg-config module `seams`, at least 2.14.0 and below 3.0.0
-   (`PKG_CONFIG_PATH=$prefix/lib/pkgconfig`, or `build/meson-uninstalled`
-   for a meson build tree). The installed library keeps every reader it
-   was configured with, including `.con` and chemfiles.
+2. Feature `bundled` (enabled by default): compile the C API, the
+   analyses behind it, and Eigen 3.4.0 with the `cc` crate, from
+   `vendor/`. The published crate ships `vendor/`; in a git checkout,
+   run `python3 dseams-sys/vendor.py` first or set `SEAMS_SOURCE_DIR` to
+   a seams-core checkout at the tag in `seams-core.env`, with Eigen 3.4
+   from `EIGEN3_INCLUDE_DIR` or pkg-config. This needs a C++20 compiler
+   with OpenMP (GCC 11 or newer) on x86_64; the shell classifier uses
+   AVX2. The bundled build reads LAMMPS dumps and XYZ, not `.con` or the
+   chemfiles formats.
+3. With `default-features = false`: probe pkg-config module `seams`, at
+   least 2.14.0 and below 3.0.0 (`PKG_CONFIG_PATH=$prefix/lib/pkgconfig`,
+   or `build/meson-uninstalled` for a meson build tree). The installed
+   library keeps every reader it was configured with, including `.con`
+   and chemfiles.
 
 A `seams_version.h` from another major release or an older minor one
 stops the build. For a shared library, `DEP_SEAMS_RPATH` carries its

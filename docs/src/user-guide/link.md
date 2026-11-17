@@ -32,14 +32,14 @@ Any other binary needs that directory on `LD_LIBRARY_PATH`.
 
 ## pkg-config
 
-Unset `SEAMS_LIBDIR`. Put the directory that holds `seams.pc` on
-`PKG_CONFIG_PATH`. For the same meson tree that file is
-`bbdir/meson-uninstalled`.
+Unset `SEAMS_LIBDIR` and disable default features. Put the directory
+that holds `seams.pc` on `PKG_CONFIG_PATH`. For the same meson tree that
+file is `bbdir/meson-uninstalled`.
 
 ```bash
 unset SEAMS_LIBDIR
 export PKG_CONFIG_PATH="$PWD/../seams-core/bbdir/meson-uninstalled"
-cargo test -- --test-threads=1
+cargo test --no-default-features -- --test-threads=1
 ```
 
 The accepted versions are 2.14.0 up to, and not including, 3.0.0. The

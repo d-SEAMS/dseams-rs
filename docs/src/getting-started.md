@@ -29,17 +29,17 @@ crate. The build script takes the first match:
    `seams.h` is not in the sibling `include` directory. For the meson tree
    that this repository's CI builds, that is the seams-core `include`
    directory plus `bbdir/src`.
-2. Feature `bundled`: compile the C API and Eigen 3.4.0 with the `cc`
-   crate. This needs x86_64 and a C++20 compiler with OpenMP. The shell
-   classifier uses AVX2. The bundled copy reads LAMMPS dumps and XYZ.
-   `.con` files and the chemfiles formats need a `libseams` that was
-   built with those readers. Fill `dseams-sys/vendor/` with
-   `python3 dseams-sys/vendor.py`, or set `SEAMS_SOURCE_DIR` to a
-   seams-core checkout at the commit in `seams-core.env`.
-   `SEAMS_LIBDIR` still wins when it is set.
-3. pkg-config module `seams`, at least 2.14.0 and below 3.0.0. A
-   `seams_version.h` from another major release, or from an older minor
-   release, stops the build.
+2. Feature `bundled` (enabled by default): compile the C API and Eigen
+   3.4.0 with the `cc` crate. This needs x86_64 and a C++20 compiler
+   with OpenMP. The shell classifier uses AVX2. The bundled copy reads
+   LAMMPS dumps and XYZ. `.con` files and the chemfiles formats need a
+   `libseams` that was built with those readers. Fill `dseams-sys/vendor/`
+   with `python3 dseams-sys/vendor.py`, or set `SEAMS_SOURCE_DIR` to a
+   seams-core checkout at the commit in `seams-core.env`. `SEAMS_LIBDIR`
+   still wins when it is set.
+3. pkg-config module `seams` (when `default-features = false`), at least
+   2.14.0 and below 3.0.0. A `seams_version.h` from another major
+   release, or from an older minor release, stops the build.
 
 The [link how-to](user-guide/link.md) has the commands for each path.
 
