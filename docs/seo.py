@@ -187,6 +187,11 @@ def content(tag):
     return html.unescape(match.group(1)).strip() if match else ""
 
 
+def href(tag):
+    match = re.search(r'\bhref\s*=\s*["\']([^"\']*)', tag.group(0), re.I)
+    return html.unescape(match.group(1)).strip() if match else ""
+
+
 def check(root):
     pages = sorted(root.rglob("*.html"))
     if not pages:
@@ -215,6 +220,8 @@ def check(root):
         ]
         og_image = attribute(text, "meta", "property", "og:image")
         twitter_image = attribute(text, "meta", "name", "twitter:image")
+        og_url = attribute(text, "meta", "property", "og:url")
+        expected_canonical = canonical_url("https://rust.dseams.info/", relative)
         missing = []
         if not title_match or not re.sub(r"<[^>]+>", "", title_match.group(1)).strip():
             missing.append("title")
@@ -222,6 +229,10 @@ def check(root):
             missing.append("description")
         if not canonical_match:
             missing.append("canonical")
+        elif href(canonical_match) != expected_canonical:
+            missing.append(f"canonical={expected_canonical}")
+        if not og_url or content(og_url) != expected_canonical:
+            missing.append(f"og:url={expected_canonical}")
         if not all(required_og) or not all(content(tag) for tag in required_og if tag):
             missing.append("Open Graph tags")
         if not all(required_twitter) or not all(
