@@ -1,5 +1,5 @@
 name: CI
-# Builds seams-core at the commit in seams-core.env and tests both crates
+# Builds seams-core at the tag in seams-core.env and tests both crates
 # against it. Nothing here publishes: cargo publish runs with --dry-run.
 on:
   push:
@@ -59,12 +59,12 @@ jobs:
           export SEAMS_CPP_ORACLE="$core/bbdir/bindings/binding_oracle"
           export SEAMS_SOURCE_ROOT="$core"
           cargo fmt --all -- --check
-          cargo clippy --all-targets -- -D warnings
-          cargo test -- --test-threads=1
-          cargo test --examples -- --test-threads=1
-          cargo run --example lang_tasks
-          cargo run --example ice_ih -- "$core/input/traj/ice1h.lammpstrj"
-          cargo doc --no-deps
+          cargo clippy --all-targets --locked -- -D warnings
+          cargo test --locked -- --test-threads=1
+          cargo test --locked --examples -- --test-threads=1
+          cargo run --locked --example lang_tasks
+          cargo run --locked --example ice_ih -- "$core/input/traj/ice1h.lammpstrj"
+          cargo doc --locked --no-deps
       - name: Link through pkg-config
         working-directory: dseams-rs
         env:
@@ -72,7 +72,7 @@ jobs:
           CARGO_TARGET_DIR: target/pkgconfig
         run: |
           export PKG_CONFIG_PATH="$GITHUB_WORKSPACE/seams-core/bbdir/meson-uninstalled"
-          cargo test -- --test-threads=1
+          cargo test --locked -- --test-threads=1
       - name: Declarations match seams.h
         working-directory: dseams-rs
         run: |
@@ -84,8 +84,8 @@ jobs:
         run: |
           export SEAMS_LIBDIR="$GITHUB_WORKSPACE/seams-core/bbdir/src"
           python3 dseams-sys/vendor.py --source "$GITHUB_WORKSPACE/seams-core"
-          cargo package --workspace --allow-dirty
-          cargo publish --workspace --dry-run --allow-dirty
+          cargo package --workspace --locked --allow-dirty
+          cargo publish --workspace --locked --dry-run --allow-dirty
 
   bundled:
     name: Bundled libseams
@@ -105,16 +105,21 @@ jobs:
         working-directory: dseams-rs
         env:
           OMP_NUM_THREADS: "1"
+          CC: gcc
+          CXX: g++
         run: |
-          cargo +stable clippy --features bundled --all-targets -- -D warnings
-          cargo +stable test --features bundled --test ice --examples -- --test-threads=1
-          cargo +stable run --features bundled --example lang_tasks
+          cargo +stable clippy --features bundled --all-targets --locked -- -D warnings
+          cargo +stable test --features bundled --locked --test ice --examples -- --test-threads=1
+          cargo +stable run --features bundled --locked --example lang_tasks
       - name: Rustdoc as docs.rs builds it
         working-directory: dseams-rs
         env:
           DOCS_RS: "1"
           RUSTDOCFLAGS: "-D warnings"
-        run: cargo +stable doc --no-deps
+        run: cargo +stable doc --locked --no-deps
       - name: Minimum supported Rust
         working-directory: dseams-rs
-        run: cargo +1.85.0 build --features bundled --all-targets
+        env:
+          CC: gcc
+          CXX: g++
+        run: cargo +1.85.0 build --features bundled --all-targets --locked

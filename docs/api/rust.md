@@ -21,7 +21,7 @@ the header directories. Otherwise it finds the `seams` pkg-config module,
 with. The `bundled` feature compiles the C API and Eigen with the `cc`
 crate instead (x86_64, a C++20 compiler with OpenMP); that copy reads
 LAMMPS dumps and XYZ. `python3 dseams-sys/vendor.py` fills
-`dseams-sys/vendor/` from the seams-core commit in `seams-core.env`.
+`dseams-sys/vendor/` from the seams-core tag in `seams-core.env`.
 
 The tests and examples of this workspace carry an rpath to `SEAMS_LIBDIR`.
 Other programs need that directory on `LD_LIBRARY_PATH` at run time.

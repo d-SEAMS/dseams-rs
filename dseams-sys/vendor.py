@@ -4,10 +4,10 @@
 """Fill dseams-sys/vendor/ with the pinned seams-core sources and Eigen.
 
 The `bundled` feature compiles libseams from vendor/, and cargo package
-ships it. The seams-core commit is the one in seams-core.env at the
+ships it. The seams-core tag is the one in seams-core.env at the
 repository root. Run this before cargo package or cargo publish:
 
-    python3 dseams-sys/vendor.py                      # download the pinned commit
+    python3 dseams-sys/vendor.py                      # download the pinned tag
     python3 dseams-sys/vendor.py --source ../seams-core  # git archive from a checkout
 
 Eigen comes from the 3.4.0 release tarball, checked against its sha256.
@@ -130,7 +130,7 @@ def unpack_eigen(tarball, dest):
 
 def main(argv):
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("--source", help="seams-core git checkout holding the pinned commit")
+    parser.add_argument("--source", help="seams-core git checkout holding the pinned tag")
     parser.add_argument("--eigen-tarball", help=f"eigen-{EIGEN_VERSION}.tar.gz on disk")
     args = parser.parse_args(argv)
 

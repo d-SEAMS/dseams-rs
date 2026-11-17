@@ -33,8 +33,8 @@ build script takes the first of:
 3. **pkg-config**: module `seams`, at least 2.14.0 and below 3.0.0.
 
 The crate version tracks the seams-core release. `seams-core.env` names the
-seams-core commit that CI builds and that `vendor.py` vendors; it moves to the
-`v2.14.0` tag of d-SEAMS/seams-core once that tag exists.
+seams-core tag that CI builds and that `vendor.py` vendors: `v2.14.0` of
+[d-SEAMS/seams-core](https://github.com/d-SEAMS/seams-core).
 
 ## Building and testing against a seams-core build
 
@@ -66,7 +66,7 @@ it on `LD_LIBRARY_PATH`.
 ## The bundled build
 
 ```bash
-python3 dseams-sys/vendor.py                       # download the pinned commit
+python3 dseams-sys/vendor.py                       # download the pinned tag
 python3 dseams-sys/vendor.py --source ../seams-core  # or git archive it from a checkout
 cargo test --features bundled --test ice --examples
 ```

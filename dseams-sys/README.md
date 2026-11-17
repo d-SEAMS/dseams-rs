@@ -29,7 +29,7 @@ libclang. `build.rs` takes the first of:
 2. Feature `bundled`: compile the C API, the analyses behind it, and
    Eigen 3.4.0 with the `cc` crate, from `vendor/`. The published crate
    ships `vendor/`; in a git checkout, run `python3 dseams-sys/vendor.py`
-   first or set `SEAMS_SOURCE_DIR` to a seams-core checkout at the commit
+   first or set `SEAMS_SOURCE_DIR` to a seams-core checkout at the tag
    in `seams-core.env`, with Eigen 3.4 from `EIGEN3_INCLUDE_DIR` or
    pkg-config. This needs a C++20 compiler with OpenMP (GCC 11
    or newer) on x86_64; the shell classifier uses AVX2. The bundled build

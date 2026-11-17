@@ -184,7 +184,7 @@ fn source_root(manifest: &Path) -> PathBuf {
     panic!(
         "feature `bundled` needs the seams-core sources: run `python3 dseams-sys/vendor.py` \
          in the dseams-rs repository, or set SEAMS_SOURCE_DIR to a seams-core checkout \
-         at the commit in seams-core.env"
+         at the tag in seams-core.env"
     );
 }
 
@@ -307,5 +307,31 @@ fn build_bundled() {
     } else {
         println!("cargo:rustc-link-lib=gomp");
     }
+    // rustc drives the link with lld (or cc, not g++). Neither searches
+    // GCC's private directory, which is where the unversioned libstdc++
+    // and libgomp live.
+    add_cxx_lib_search(&compiler);
     export_include(&[root.join("include"), generated]);
+}
+
+#[cfg(feature = "bundled")]
+fn add_cxx_lib_search(compiler: &cc::Tool) {
+    for name in ["libstdc++.so", "libc++.so", "libgomp.so", "libomp.so"] {
+        let Ok(output) = std::process::Command::new(compiler.path())
+            .arg(format!("-print-file-name={name}"))
+            .output()
+        else {
+            continue;
+        };
+        if !output.status.success() {
+            continue;
+        }
+        let text = String::from_utf8_lossy(&output.stdout);
+        let path = Path::new(text.trim());
+        if let Some(dir) = path.parent() {
+            if path.is_file() {
+                println!("cargo:rustc-link-search=native={}", dir.display());
+            }
+        }
+    }
 }
