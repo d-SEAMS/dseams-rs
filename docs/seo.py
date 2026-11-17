@@ -273,7 +273,7 @@ def check(root):
         errors.append("robots.txt has no custom-domain sitemap")
     if errors:
         raise ValueError("\n".join(errors))
-    print(f"SEO metadata ok ({len(pages)} HTML pages)")
+    print(f"Search metadata ok ({len(pages)} HTML pages)")
 
 
 def main():
