@@ -30,6 +30,7 @@ include = [
 name = "seams_sys"
 
 [features]
+default = ["bundled"]
 # Compile libseams from the seams-core sources in vendor/ (see vendor.py)
 # instead of linking an installed one. That build reads LAMMPS dumps and
 # XYZ, not .con or the chemfiles formats. SEAMS_LIBDIR still wins.

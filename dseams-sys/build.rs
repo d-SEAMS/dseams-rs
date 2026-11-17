@@ -263,8 +263,12 @@ fn build_bundled() {
     }
 
     let eigen = eigen_include(&root);
+    let cxx_override = pick_cxx_compiler(&out);
     let base = || {
         let mut build = cc::Build::new();
+        if let Some(cxx) = &cxx_override {
+            build.compiler(cxx);
+        }
         build
             .cpp(true)
             .std("c++20")
@@ -312,6 +316,52 @@ fn build_bundled() {
     // and libgomp live.
     add_cxx_lib_search(&compiler);
     export_include(&[root.join("include"), generated]);
+}
+
+#[cfg(feature = "bundled")]
+fn cxx_probe(compiler: &Path, out: &Path) -> bool {
+    let src = out.join("cxx_probe.cpp");
+    let bin = out.join("cxx_probe.out");
+    let code = "#include <cstdint>\n#include <omp.h>\nint main() { return omp_get_max_threads() > 0 ? 0 : 1; }\n";
+    if fs::write(&src, code).is_err() {
+        return false;
+    }
+    let ok = std::process::Command::new(compiler)
+        .args(["-std=c++20", "-fopenmp"])
+        .arg(&src)
+        .arg("-o")
+        .arg(&bin)
+        .output()
+        .is_ok_and(|out| out.status.success());
+    let _ = fs::remove_file(&src);
+    let _ = fs::remove_file(&bin);
+    ok
+}
+
+#[cfg(feature = "bundled")]
+fn pick_cxx_compiler(out: &Path) -> Option<PathBuf> {
+    if env::var("CARGO_CFG_TARGET_OS").as_deref() == Ok("windows") {
+        return None;
+    }
+    for var in [
+        "CXX",
+        "HOST_CXX",
+        "CXX_x86_64_unknown_linux_gnu",
+        "CXX_x86_64-unknown-linux-gnu",
+    ] {
+        if env::var_os(var).is_some() {
+            return None;
+        }
+    }
+    let default = cc::Build::new().cpp(true).get_compiler();
+    if cxx_probe(default.path(), out) {
+        return None;
+    }
+    let gxx = Path::new("g++");
+    if cxx_probe(gxx, out) {
+        return Some(gxx.to_path_buf());
+    }
+    None
 }
 
 #[cfg(feature = "bundled")]

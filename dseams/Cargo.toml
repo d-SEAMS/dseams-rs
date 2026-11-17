@@ -27,6 +27,7 @@ include = [
 name = "seams"
 
 [features]
+default = ["bundled"]
 bundled = ["dseams-sys/bundled"]
 
 [dependencies]
