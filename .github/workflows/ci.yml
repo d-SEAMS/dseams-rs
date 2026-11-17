@@ -73,7 +73,7 @@ jobs:
           CARGO_TARGET_DIR: target/pkgconfig
         run: |
           export PKG_CONFIG_PATH="$GITHUB_WORKSPACE/seams-core/bbdir/meson-uninstalled"
-          cargo test --locked -- --test-threads=1
+          cargo test --locked --no-default-features -- --test-threads=1
       - name: Declarations match seams.h
         working-directory: dseams-rs
         run: |
@@ -109,9 +109,10 @@ jobs:
           CC: gcc
           CXX: g++
         run: |
-          cargo +stable clippy --features bundled --all-targets --locked -- -D warnings
-          cargo +stable test --features bundled --locked --test ice --examples -- --test-threads=1
-          cargo +stable run --features bundled --locked --example lang_tasks
+          cargo +stable clippy --all-targets --locked -- -D warnings
+          cargo +stable test --locked --test ice --examples -- --test-threads=1
+          cargo +stable run --locked --example lang_tasks
+          cargo +stable publish --workspace --locked --dry-run --allow-dirty
       - name: Rustdoc as docs.rs builds it
         working-directory: dseams-rs
         env:

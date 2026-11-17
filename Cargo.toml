@@ -13,4 +13,4 @@ repository = "https://github.com/d-SEAMS/dseams-rs"
 [workspace.dependencies]
 # The version requirement is what crates.io records; the path only applies
 # inside this workspace.
-dseams-sys = { version = "=2.14.0", path = "dseams-sys" }
+dseams-sys = { version = "=2.14.0", path = "dseams-sys", default-features = false }
