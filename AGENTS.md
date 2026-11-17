@@ -32,7 +32,7 @@ the tests compare against live in
 | `dseams/src/lib.rs` | The safe crate (library name `seams`) |
 | `dseams/tests/` | `ice.rs` (every wrapper), `cpp_match.rs` (against the C++ oracle), `data/` fixtures |
 | `dseams/examples/` | `ice`, `minimal`, `ice_ih`, `lang_tasks`, `binding_overhead`; each has a test of its output |
-| `docs/` | API page, tutorial and language-task page, included by the d-SEAMS docs |
+| `docs/` | mdBook (getting started, user guide, API reference, development) and the rustdoc coverage check |
 | `changelog.d/` | Unreleased changelog fragments |
 | `.github/workflows/ci.yml` | Builds seams-core at the pin and runs every check below |
 

@@ -75,7 +75,7 @@ cargo test --features bundled --test ice --examples
 
 `dseams/examples/` holds `ice` (a built diamond cell), `minimal` (the GenIce
 sI cell), `ice_ih` (the ice Ih census) and `lang_tasks` (the census every
-d-SEAMS language front prints, shown in `docs/lang/task-rust.rst`). Each
+d-SEAMS language front prints, shown in the ice Ih tutorial). Each
 reads its dump from `dseams/tests/data/` unless a path is given, and
 `cargo test --examples` checks its output.
 
@@ -155,8 +155,10 @@ fragment under `changelog.d/`.
 
 ## Documentation
 
-`docs/api/rust.md` is the API page and `docs/tutorials/rust.md` the
-tutorial; `cargo doc --no-deps` builds the rustdoc.
+The book under `docs/` has four parts: getting started, the user guide,
+the API reference, and development. `mdbook build docs` renders it.
+The API reference is rustdoc (`cargo doc --no-deps`). The engine book
+is [docs.dseams.info](https://docs.dseams.info).
 
 ## License
 

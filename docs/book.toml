@@ -1,0 +1,12 @@
+[book]
+title = "dseams"
+authors = ["Rohit Goswami"]
+description = "Rust bindings to the d-SEAMS ice, clathrate and ring engine"
+language = "en"
+src = "src"
+
+[build]
+build-dir = "book"
+
+[output.html]
+git-repository-url = "https://github.com/d-SEAMS/dseams-rs"
