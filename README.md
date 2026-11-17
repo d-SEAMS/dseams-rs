@@ -155,10 +155,18 @@ fragment under `changelog.d/`.
 
 ## Documentation
 
+- Site: <https://d-seams.github.io/dseams-rs/>, the book with the rustdoc
+  pages under [`api/`](https://d-seams.github.io/dseams-rs/api/seams/index.html).
+- docs.rs: [`dseams`](https://docs.rs/dseams) and
+  [`dseams-sys`](https://docs.rs/dseams-sys).
+- Engine book: [the Rust page](https://docs.dseams.info/stable/rust.html)
+  of [docs.dseams.info](https://docs.dseams.info).
+- Video: [Rust on ice Ih](https://odysee.com/dseams-rust:687055b1ac9dfe7596006cb4f2fa466de9492ca5).
+
 The book under `docs/` has four parts: getting started, the user guide,
-the API reference, and development. `mdbook build docs` renders it.
-The API reference is rustdoc (`cargo doc --no-deps`). The engine book
-is [docs.dseams.info](https://docs.dseams.info).
+the API reference, and development. `mdbook build docs` renders it, and
+`cargo doc --no-deps` writes the API reference. A push to `main` deploys
+both to the site.
 
 ## License
 

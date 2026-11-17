@@ -39,8 +39,14 @@ The layout follows the same four-part shape as the NumPy documentation.
 - [Development](development.md) is how to build, test, and regenerate the declarations.
 
 The engine book, including the C API and the science tutorials, is
-[docs.dseams.info](https://docs.dseams.info). The C header reference is
+[docs.dseams.info](https://docs.dseams.info). Its Rust page is
+[the stable Rust guide](https://docs.dseams.info/stable/rust.html), and
+the C header reference is
 [the stable C API](https://docs.dseams.info/stable/c.html).
+
+The recording runs the ice Ih census from Rust:
+
+<iframe title="Rust on ice Ih" src="https://odysee.com/$/embed/dseams-rust:687055b1ac9dfe7596006cb4f2fa466de9492ca5" width="960" height="540" allowfullscreen></iframe>
 
 Cite the 2020 paper, [DOI 10.1021/acs.jcim.0c00031](https://doi.org/10.1021/acs.jcim.0c00031),
 as recorded in `CITATION.cff`.
