@@ -2,7 +2,9 @@
 
 The reference is rustdoc, generated from the crate source. Every public
 type, function, field, and enum variant in `dseams` and `dseams-sys` is
-in that output. `dseams` denies missing documentation, and each public
+in that output. This site carries the pages for
+[`seams`](api/seams/index.html) and
+[`seams_sys`](api/seams_sys/index.html). `dseams` denies missing documentation, and each public
 item carries a doctest.
 
 Build it from this repository:
