@@ -9,5 +9,5 @@ src = "src"
 build-dir = "book"
 
 [output.html]
-site-url = "/dseams-rs/"
+site-url = "/"
 git-repository-url = "https://github.com/d-SEAMS/dseams-rs"

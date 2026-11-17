@@ -155,8 +155,8 @@ fragment under `changelog.d/`.
 
 ## Documentation
 
-- Site: <https://d-seams.github.io/dseams-rs/>, the book with the rustdoc
-  pages under [`api/`](https://d-seams.github.io/dseams-rs/api/seams/index.html).
+- Site: <https://rust.dseams.info/>, the book with the rustdoc
+  pages under [`api/`](https://rust.dseams.info/api/seams/index.html).
 - docs.rs: [`dseams`](https://docs.rs/dseams) and
   [`dseams-sys`](https://docs.rs/dseams-sys).
 - Engine book: [the Rust page](https://docs.dseams.info/stable/rust.html)
