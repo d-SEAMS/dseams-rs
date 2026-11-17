@@ -175,7 +175,7 @@ jobs:
             --timeout 30
             --max-concurrency 4
             --accept 200,206,429
-            --exclude '^https://d-seams\.github\.io/dseams-rs/'
+            --exclude '^https://rust\.dseams\.info/'
             --exclude '^https://doi\.org/'
             --extensions md,html
             --exclude-path docs/book/404.html
