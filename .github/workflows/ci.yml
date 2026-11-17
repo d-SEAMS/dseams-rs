@@ -158,6 +158,8 @@ jobs:
           mdbook build docs
           cp -r target/doc docs/book/api
           cp docs/rustdoc-index.html docs/book/api/index.html
+          python3 docs/seo.py apply docs/book
+          python3 docs/seo.py check docs/book
           python3 docs/check_book.py docs/book
       # The site's own URL is skipped: docs/book is that site, checked here
       # before it is deployed. 404.html uses site-absolute links, and

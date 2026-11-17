@@ -1,7 +1,7 @@
 [book]
-title = "dseams"
+title = "dseams Rust Documentation"
 authors = ["Rohit Goswami"]
-description = "Rust bindings to the d-SEAMS ice, clathrate and ring engine"
+description = "Rust API and user guide for d-SEAMS ice, clathrate cage and primitive ring analysis"
 language = "en"
 src = "src"
 
