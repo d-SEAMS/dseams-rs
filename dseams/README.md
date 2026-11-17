@@ -28,13 +28,19 @@ fn main() -> Result<(), seams::Error> {
     sys.set_ortho(&xyz, a, a, a)?;
     let ice = sys.chill_plus(&seams::ChillOptions::default())?;
     assert_eq!(ice.labels.len(), 8);
+    assert_eq!(ice.counts[seams::Label::Cubic as usize], 8);
+    println!(
+        "cubic {} of {}",
+        ice.counts[seams::Label::Cubic as usize],
+        ice.labels.len()
+    );
     Ok(())
 }
 ```
 
-`dseams-sys` links an installed libseams: the directory in `SEAMS_LIBDIR`,
-or the `seams` pkg-config module. The `bundled` feature compiles one from
-the pinned seams-core sources instead (x86_64, C++20 and OpenMP); see the
-`dseams-sys` README.
+By default, the `bundled` feature builds libseams from the vendored
+seams-core sources (x86_64, C++20 and OpenMP). Set `SEAMS_LIBDIR` to
+link an installed libseams instead, or disable default features to probe
+the `seams` pkg-config module; see the `dseams-sys` README.
 
 Licensed under MIT.

@@ -2,7 +2,7 @@
 
 > dseams-rs holds the Rust crates for d-SEAMS: `dseams-sys`, raw declarations for the libseams C API, and `dseams`, safe handles for CHILL and CHILL+ ice labels, Steinhardt order parameters, primitive rings, cages, RDFs, hydrogen bonds and topological fingerprints of molecular simulation frames.
 
-The crates.io packages are `dseams-sys` and `dseams`; the library names are `seams_sys` and `seams`, so code says `use seams::System`. Rust 1.85 or newer builds them. `dseams-sys` links the shared libseams in `SEAMS_LIBDIR`, else the `seams` pkg-config module (2.14 <= v < 3); the `bundled` feature compiles one from the seams-core tag in `seams-core.env` instead. The crate version is the seams-core release it binds. Contributor instructions are in the contributing guide at the repository root.
+The crates.io packages are `dseams-sys` and `dseams`; the library names are `seams_sys` and `seams`, so code says `use seams::System`. Rust 1.85 or newer builds them. `dseams-sys` links the shared libseams in `SEAMS_LIBDIR`, else compiles the `bundled` copy (enabled by default) from the seams-core tag in `seams-core.env`, or probes the `seams` pkg-config module (2.14 <= v < 3) when default features are disabled. The crate version tracks the seams-core release it binds. Contributor instructions are in the contributing guide at the repository root.
 
 ## Rust API
 

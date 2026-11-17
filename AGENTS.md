@@ -41,10 +41,11 @@ the tests compare against live in
 `build.rs` takes the first that applies:
 
 1. `SEAMS_LIBDIR` (or `SEAMS_LIB_DIR`): the directory with the shared
-   libseams. `SEAMS_INCLUDE` is a path list of header directories.
-2. Feature `bundled`: compile from `vendor/`, or from a seams-core checkout
-   named by `SEAMS_SOURCE_DIR`.
-3. pkg-config module `seams`, at least 2.14.0 and below 3.0.0.
+ libseams. `SEAMS_INCLUDE` is a path list of header directories.
+2. Feature `bundled` (enabled by default): compile from `vendor/`, or
+ from a seams-core checkout named by `SEAMS_SOURCE_DIR`.
+3. pkg-config module `seams` (when `default-features = false`), at least
+ 2.14.0 and below 3.0.0.
 
 A `seams_version.h` from another major release or an older minor one stops
 the build. `DOCS_RS` skips linking. The directory of a shared library reaches

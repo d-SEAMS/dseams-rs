@@ -27,10 +27,12 @@ build script takes the first of:
    build tree's `build/src` or an install prefix's `lib`. `SEAMS_INCLUDE`
    (a path list) names the header directories when they are not
    `$SEAMS_LIBDIR/../include`.
-2. **Feature `bundled`**: compile the C API and Eigen 3.4.0 from the seams-core
-   sources in `dseams-sys/vendor/` with the `cc` crate. x86_64 only, C++20
-   with OpenMP; reads LAMMPS dumps and XYZ but not `.con` or chemfiles.
-3. **pkg-config**: module `seams`, at least 2.14.0 and below 3.0.0.
+2. **Feature `bundled`** (enabled by default): compile the C API and
+   Eigen 3.4.0 from the seams-core sources in `dseams-sys/vendor/` with
+   the `cc` crate. x86_64 only, C++20 with OpenMP; reads LAMMPS dumps
+   and XYZ but not `.con` or chemfiles.
+3. **pkg-config** (with `default-features = false`): module `seams`, at
+   least 2.14.0 and below 3.0.0.
 
 The crate version tracks the seams-core release. `seams-core.env` names the
 seams-core tag that CI builds and that `vendor.py` vendors: `v2.14.0` of
@@ -103,12 +105,9 @@ cargo publish --workspace --dry-run --allow-dirty
 `--allow-dirty` is there because `vendor/` is generated and gitignored.
 `--workspace` checks `dseams` against the `dseams-sys` package just built.
 A lone `cargo publish -p dseams` waits until that version is on crates.io,
-which is how the tag workflow publishes them.
-The first publish of each crate needs a crates.io API token in
-`CARGO_REGISTRY_TOKEN` on the `release` environment. Trusted publishing
-can be saved only after the crate exists. Once each crate lists this
-repository, workflow `publish.yml`, and environment `release`, remove the
-token and later tags authenticate with GitHub OIDC.
+which is how the tag workflow publishes them. The tag workflow
+authenticates with crates.io trusted publishing via GitHub OIDC
+(`publish.yml` in the `release` environment).
 
 ## Development
 

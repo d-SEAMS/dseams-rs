@@ -32,8 +32,8 @@
 //! ```
 //!
 //! `dseams-sys` links the `libseams` in `SEAMS_LIBDIR` when that is set,
-//! and otherwise finds an installed one through pkg-config. The `bundled`
-//! feature compiles a copy from the pinned seams-core sources instead.
+//! and otherwise compiles the `bundled` copy from the pinned seams-core
+//! sources (or probes pkg-config when default features are disabled).
 
 #![deny(missing_docs)]
 
