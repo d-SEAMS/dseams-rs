@@ -17,6 +17,7 @@ DESCRIPTION = (
 DOI = "https://doi.org/10.1021/acs.jcim.0c00031"
 REPOSITORY = "https://github.com/d-SEAMS/dseams-rs"
 SITE_NAME = "dseams Rust documentation"
+SOCIAL_IMAGE = "https://dseams.info/images/og-dseams.png"
 START = "<!-- dseams-seo:start -->"
 END = "<!-- dseams-seo:end -->"
 
@@ -99,9 +100,11 @@ def metadata(title, description, canonical, sitemap):
             f'<meta property="og:title" content="{escaped_title}">',
             f'<meta property="og:description" content="{escaped_description}">',
             f'<meta property="og:url" content="{escaped_url}">',
+            f'<meta property="og:image" content="{SOCIAL_IMAGE}">',
             '<meta name="twitter:card" content="summary">',
             f'<meta name="twitter:title" content="{escaped_title}">',
             f'<meta name="twitter:description" content="{escaped_description}">',
+            f'<meta name="twitter:image" content="{SOCIAL_IMAGE}">',
             '<script type="application/ld+json">'
             + json.dumps(graph, ensure_ascii=False, separators=(",", ":"))
             + "</script>",
@@ -165,6 +168,11 @@ def apply(root, base_url):
     ElementTree.ElementTree(sitemap).write(
         root / "sitemap.xml", encoding="utf-8", xml_declaration=True
     )
+    (root / "robots.txt").write_text(
+        "User-agent: *\nAllow: /\n"
+        f"Sitemap: {canonical_url(base_url, Path('sitemap.xml'))}\n",
+        encoding="utf-8",
+    )
 
 
 def attribute(text, element, key, value):
@@ -172,6 +180,11 @@ def attribute(text, element, key, value):
         rf"<{element}\b(?=[^>]*\b{key}\s*=\s*['\"]{re.escape(value)}['\"])[^>]*>"
     )
     return re.search(pattern, text, re.I)
+
+
+def content(tag):
+    match = re.search(r'\bcontent\s*=\s*["\']([^"\']*)', tag.group(0), re.I)
+    return html.unescape(match.group(1)).strip() if match else ""
 
 
 def check(root):
@@ -189,11 +202,16 @@ def check(root):
         canonical_match = attribute(text, "link", "rel", "canonical")
         required_og = [
             attribute(text, "meta", "property", name)
-            for name in ("og:title", "og:description", "og:url")
+            for name in ("og:title", "og:description", "og:url", "og:image")
         ]
         required_twitter = [
             attribute(text, "meta", "name", name)
-            for name in ("twitter:card", "twitter:title", "twitter:description")
+            for name in (
+                "twitter:card",
+                "twitter:title",
+                "twitter:description",
+                "twitter:image",
+            )
         ]
         missing = []
         if not title_match or not re.sub(r"<[^>]+>", "", title_match.group(1)).strip():
@@ -202,9 +220,11 @@ def check(root):
             missing.append("description")
         if not canonical_match:
             missing.append("canonical")
-        if not all(required_og):
+        if not all(required_og) or not all(content(tag) for tag in required_og if tag):
             missing.append("Open Graph tags")
-        if not all(required_twitter):
+        if not all(required_twitter) or not all(
+            content(tag) for tag in required_twitter if tag
+        ):
             missing.append("Twitter tags")
         if DOI not in text or '"SoftwareApplication"' not in text or '"SoftwareSourceCode"' not in text:
             missing.append("structured data")
@@ -227,6 +247,13 @@ def check(root):
                 )
     if not (root / "sitemap.xml").is_file():
         errors.append("missing sitemap.xml")
+    robots = root / "robots.txt"
+    if not robots.is_file():
+        errors.append("missing robots.txt")
+    elif "Sitemap: https://rust.dseams.info/sitemap.xml" not in robots.read_text(
+        encoding="utf-8"
+    ):
+        errors.append("robots.txt has no custom-domain sitemap")
     if errors:
         raise ValueError("\n".join(errors))
     print(f"SEO metadata ok ({len(pages)} HTML pages)")
