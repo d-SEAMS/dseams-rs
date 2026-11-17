@@ -11,6 +11,23 @@ by [towncrier](https://towncrier.readthedocs.io/).
 
 <!-- towncrier release notes start -->
 
+## [2.14.1] - 2026-11-17
+
+### Added
+
+- The book and the rustdoc pages are published at https://d-seams.github.io/dseams-rs/ from every push to `main`. The README links the site, docs.rs, the engine book's Rust page and the Rust recording.
+
+### Changed
+
+- The documentation is a book with a getting started, a user guide, a rustdoc API reference, and a development page. The ice Ih, cage, ring, interface, brine, and nucleation pages include the matching d-SEAMS recordings.
+- The tag publish workflow now authenticates exclusively through crates.io trusted publishing via GitHub OIDC and accepts patch releases of the Rust crates for the same `seams-core` minor release.
+- `dseams` and `dseams-sys` now enable the `bundled` feature by default so `cargo add dseams` builds without a preinstalled `libseams`; `SEAMS_LIBDIR` still takes precedence, and `default-features = false` probes `pkg-config`.
+
+### Fixed
+
+- The bundled build script probes the default C++ compiler for C++20 and OpenMP and falls back to `g++` when `CXX` is unset and the default `c++` fails that probe.
+
+
 ## [2.14.0] - 2026-11-17
 
 ### Added

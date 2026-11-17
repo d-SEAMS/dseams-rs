@@ -1,6 +1,6 @@
 # Getting started
 
-This page installs `dseams` 2.14.0, points the build at `libseams`, and
+This page installs `dseams` 2.14.1, points the build at `libseams`, and
 classifies one cubic cell. The recording is the Rust front on ice Ih.
 
 <iframe title="Rust on ice Ih" src="https://odysee.com/$/embed/dseams-rust:687055b1ac9dfe7596006cb4f2fa466de9492ca5" width="960" height="540" allowfullscreen></iframe>
@@ -13,7 +13,7 @@ Rust 1.85 or newer builds the crates.
 
 ```toml
 [dependencies]
-dseams = "2.14.0"
+dseams = "2.14.1"
 ```
 
 `cargo add dseams` writes the same line. The library name is `seams`.
