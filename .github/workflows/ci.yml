@@ -151,14 +151,19 @@ jobs:
           cargo doc --locked --no-deps --workspace
           python3 docs/check_rustdoc.py target/doc
       # The rustdoc pages go under api/ so the book's API page can link them.
+      # rustdoc's help and settings pages link api/index.html, which a
+      # stable workspace build does not write.
       - name: Build the book and check links
         run: |
           mdbook build docs
           cp -r target/doc docs/book/api
+          cp docs/rustdoc-index.html docs/book/api/index.html
           python3 docs/check_book.py docs/book
       # The site's own URL is skipped: docs/book is that site, checked here
       # before it is deployed. 404.html uses site-absolute links, and
-      # static.files holds the rustdoc font licenses.
+      # static.files holds the rustdoc font licenses. doi.org redirects to
+      # a publisher that answers CI runners with 403; check_book.py
+      # already resolves the DOI and accepts that 403.
       - name: Link check
         uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2.9.0
         with:
@@ -171,6 +176,7 @@ jobs:
             --max-concurrency 4
             --accept 200,206,429
             --exclude '^https://d-seams\.github\.io/dseams-rs/'
+            --exclude '^https://doi\.org/'
             --extensions md,html
             --exclude-path docs/book/404.html
             --exclude-path 'docs/book/api/static\.files'
