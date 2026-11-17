@@ -60,6 +60,12 @@ def remove_generated_metadata(text):
         text,
         flags=re.I,
     )
+    text = re.sub(
+        r"<meta\b(?=[^>]*\b(?:name|property)\s*=\s*['\"](?:og|twitter):)[^>]*>\s*",
+        "",
+        text,
+        flags=re.I,
+    )
     return text
 
 
