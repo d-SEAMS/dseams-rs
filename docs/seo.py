@@ -17,7 +17,7 @@ DESCRIPTION = (
 DOI = "https://doi.org/10.1021/acs.jcim.0c00031"
 REPOSITORY = "https://github.com/d-SEAMS/dseams-rs"
 SITE_NAME = "dseams Rust documentation"
-SOCIAL_IMAGE = "https://dseams.info/images/og-dseams.png"
+SOCIAL_IMAGE = "https://dseams.info/images/og-card.png"
 START = "<!-- dseams-seo:start -->"
 END = "<!-- dseams-seo:end -->"
 
@@ -213,6 +213,8 @@ def check(root):
                 "twitter:image",
             )
         ]
+        og_image = attribute(text, "meta", "property", "og:image")
+        twitter_image = attribute(text, "meta", "name", "twitter:image")
         missing = []
         if not title_match or not re.sub(r"<[^>]+>", "", title_match.group(1)).strip():
             missing.append("title")
@@ -226,6 +228,10 @@ def check(root):
             content(tag) for tag in required_twitter if tag
         ):
             missing.append("Twitter tags")
+        if not og_image or content(og_image) != SOCIAL_IMAGE:
+            missing.append(f"og:image={SOCIAL_IMAGE}")
+        if not twitter_image or content(twitter_image) != SOCIAL_IMAGE:
+            missing.append(f"twitter:image={SOCIAL_IMAGE}")
         if DOI not in text or '"SoftwareApplication"' not in text or '"SoftwareSourceCode"' not in text:
             missing.append("structured data")
         if missing:
