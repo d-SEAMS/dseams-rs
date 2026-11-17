@@ -10,7 +10,7 @@ package is `dseams`. The library is still called `seams`:
 
 ```toml
 [dependencies]
-dseams = "2.14.0"
+dseams = "2.14.1"
 ```
 
 ```rust

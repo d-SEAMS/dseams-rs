@@ -15,7 +15,7 @@ The crates.io name `seams` belongs to an unrelated project, hence the `d`.
 
 ```toml
 [dependencies]
-dseams = "2.14.0"
+dseams = "2.14.1"
 ```
 
 ## Linking libseams
