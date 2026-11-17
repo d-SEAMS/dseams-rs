@@ -1,0 +1,100 @@
+name: Publish
+# Publishes dseams-sys, then dseams, when a version tag is pushed.
+# vendor/ is generated from the seams-core tag and is gitignored, so the
+# publish allows a dirty tree. The first publish of each crate needs
+# CARGO_REGISTRY_TOKEN. After a trusted publisher is saved on crates.io,
+# remove the secret and this job exchanges a GitHub OIDC token instead.
+on:
+  push:
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+"
+
+concurrency:
+  group: publish
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: Publish to crates.io
+    runs-on: ubuntu-24.04
+    environment: release
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      CC: gcc
+      CXX: g++
+      OMP_NUM_THREADS: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install Rust
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup default stable
+      - name: Compilers for the bundled verify build
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends g++ libomp-dev pkg-config
+      - name: Tag matches the workspace version
+        run: |
+          version=$(python3 -c 'import tomllib; print(tomllib.load(open("Cargo.toml","rb"))["workspace"]["package"]["version"])')
+          tag="${GITHUB_REF_NAME#v}"
+          test "$tag" = "$version"
+          . ./seams-core.env
+          test "$SEAMS_CORE_REPO" = "https://github.com/d-SEAMS/seams-core"
+          test "$SEAMS_CORE_REF" = "v$version"
+      - name: Vendor the pinned seams-core tag and Eigen
+        run: python3 dseams-sys/vendor.py
+      - name: Registry token is configured
+        id: secret
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: |
+          if [ -n "$CARGO_REGISTRY_TOKEN" ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Exchange the GitHub token
+        id: auth
+        if: steps.secret.outputs.present != 'true'
+        uses: rust-lang/crates-io-auth-action@3268eb413133e2960fa4ae0e963ca76380c54cd9 # v1.0.6
+      - name: Publish dseams-sys, then dseams
+        env:
+          SECRET_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+          OIDC_TOKEN: ${{ steps.auth.outputs.token }}
+        run: |
+          set -euo pipefail
+          if [ -n "${SECRET_TOKEN}" ]; then
+            echo "Using CARGO_REGISTRY_TOKEN."
+            export CARGO_REGISTRY_TOKEN="$SECRET_TOKEN"
+          elif [ -n "${OIDC_TOKEN}" ]; then
+            echo "Using crates.io trusted publishing."
+            export CARGO_REGISTRY_TOKEN="$OIDC_TOKEN"
+          else
+            echo "No crates.io credentials. Set CARGO_REGISTRY_TOKEN for the first publish, or configure trusted publishing." >&2
+            exit 1
+          fi
+          unset SECRET_TOKEN OIDC_TOKEN
+          cargo publish -p dseams-sys --features bundled --locked --allow-dirty
+          # The dseams verify build downloads dseams-sys. The index can lag.
+          for attempt in 1 2 3 4 5 6 7 8 9 10 11 12; do
+            log=$(mktemp)
+            if cargo publish -p dseams --features bundled --locked --allow-dirty >"$log" 2>&1; then
+              cat "$log"
+              rm -f "$log"
+              exit 0
+            fi
+            cat "$log"
+            if [ "$attempt" -eq 12 ] || ! grep -q -e "no matching package named \`dseams-sys\`" -e "failed to select a version for the requirement \`dseams-sys" "$log"; then
+              rm -f "$log"
+              exit 1
+            fi
+            rm -f "$log"
+            sleep 15
+          done

@@ -90,8 +90,10 @@ output for the pinned header.
 
 ## Publishing
 
-Both crates publish from the workspace, `dseams-sys` first; `vendor/` must
-be filled so the `bundled` feature works from crates.io:
+Both crates publish from the workspace, `dseams-sys` first. `vendor/` must
+be filled so the `bundled` feature works from crates.io. Pushing the tag
+`vX.Y.Z` runs [`.github/workflows/publish.yml`](.github/workflows/publish.yml),
+which vendors the seams-core tag and publishes `dseams-sys`, then `dseams`.
 
 ```bash
 python3 dseams-sys/vendor.py
@@ -99,6 +101,14 @@ cargo publish --workspace --dry-run --allow-dirty
 ```
 
 `--allow-dirty` is there because `vendor/` is generated and gitignored.
+`--workspace` checks `dseams` against the `dseams-sys` package just built.
+A lone `cargo publish -p dseams` waits until that version is on crates.io,
+which is how the tag workflow publishes them.
+The first publish of each crate needs a crates.io API token in
+`CARGO_REGISTRY_TOKEN` on the `release` environment. Trusted publishing
+can be saved only after the crate exists. Once each crate lists this
+repository, workflow `publish.yml`, and environment `release`, remove the
+token and later tags authenticate with GitHub OIDC.
 
 ## Development
 
@@ -137,9 +147,8 @@ at `../seams-core/.pixi/envs/default/include/eigen3`) or pkg-config.
    and `SEAMS_CORE_REF=vX.Y.Z`, the workspace version and the `dseams-sys`
    requirement become `X.Y.Z`, `towncrier build --version X.Y.Z` writes the
    changelog, and CI passes on that commit.
-3. `python3 dseams-sys/vendor.py`, then `cargo publish -p dseams-sys --allow-dirty`.
-4. `cargo publish -p dseams`, which needs that `dseams-sys` on crates.io.
-5. Tag `vX.Y.Z` here.
+3. Tag `vX.Y.Z` here. `.github/workflows/publish.yml` vendors the pinned
+   seams-core tag and publishes `dseams-sys`, then `dseams`.
 
 Commits follow Conventional Commits, and each user-visible change adds a
 fragment under `changelog.d/`.

@@ -127,7 +127,8 @@ it through the workspace.
    `dseams-sys` requirement in `Cargo.toml` and `version` in
    `CITATION.cff` to `X.Y.Z`, run
    `towncrier build --version X.Y.Z`, and wait for CI on that commit.
-3. `python3 dseams-sys/vendor.py`, then `cargo publish -p dseams-sys --allow-dirty`
-   (`vendor/` is generated and ignored, so cargo counts it as uncommitted).
-4. `cargo publish -p dseams` once `dseams-sys` is on crates.io.
-5. Tag `vX.Y.Z` here.
+3. Tag `vX.Y.Z` here. `.github/workflows/publish.yml` vendors the pinned
+   tag and publishes `dseams-sys`, then `dseams`. `vendor/` is generated and
+   ignored, so that job passes `--allow-dirty`. The first publish of each
+   crate needs `CARGO_REGISTRY_TOKEN`; trusted publishing is configured on
+   crates.io after the crate exists.
