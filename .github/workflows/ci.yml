@@ -66,6 +66,7 @@ jobs:
           cargo run --locked --example lang_tasks
           cargo run --locked --example ice_ih -- "$core/input/traj/ice1h.lammpstrj"
           cargo doc --locked --no-deps
+          python3 docs/check_examples.py
       - name: Link through pkg-config
         working-directory: dseams-rs
         env:
@@ -112,6 +113,7 @@ jobs:
           cargo +stable clippy --features bundled --all-targets --locked -- -D warnings
           cargo +stable test --features bundled --locked --test ice --examples -- --test-threads=1
           cargo +stable run --features bundled --locked --example lang_tasks
+          python3 docs/check_examples.py --features bundled
       - name: Rustdoc as docs.rs builds it
         working-directory: dseams-rs
         env:
