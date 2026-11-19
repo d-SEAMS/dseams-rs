@@ -1,45 +1,95 @@
 # How to: handle errors
 
-Fallible calls return `Result<T, seams::Error>`. `Error` is one of three
-variants.
+Every call that can fail returns `Result<T, seams::Error>`. `Error` has
+three variants:
 
 | Variant | When |
 | --- | --- |
-| `Library { status, message }` | The C call failed with a status this crate names. `message` is `seams_handle_error` for that handle. |
-| `Other { code, message }` | The library returned a status code this crate does not name. |
-| `Argument { message }` | The value cannot cross the C boundary, such as a nul inside a path, or a coordinate slice whose length is not a multiple of 3. |
+| `Library { status, message }` | The engine refused the call with a status the crate names. `message` says why in words. |
+| `Other { code, message }` | The engine returned a status code that this version of the crate does not name. |
+| `Argument { message }` | The value could not be passed to the engine at all, such as a path with a nul byte or a coordinate list whose length is not a multiple of 3. |
 
-`status()` is `Some` only for `Library`. `code()` is the status integer.
-An `Argument` uses code 4. `message()` is the detail text. `Display`
-prints the message and the status name.
+Three methods read an error without matching on it. `status()` is `Some`
+only for `Library`. `code()` is the integer status, and an `Argument`
+error has code 4. `message()` is the text. `Display` prints the message
+followed by the status name.
 
-An empty system has no frame. `chill_plus` then returns `Status::State`:
+## The statuses
+
+| Status | Code | Meaning |
+| --- | --- | --- |
+| `Ok` | 0 | The call succeeded. |
+| `Null` | 1 | A required pointer was null. |
+| `Range` | 2 | A number was outside the accepted range. |
+| `Cell` | 3 | The cell is missing or has no volume. |
+| `Argument` | 4 | An argument had the wrong shape. |
+| `State` | 5 | The handle has no frame yet. |
+| `Memory` | 6 | An allocation failed. |
+| `Internal` | 7 | The engine hit an internal failure. |
+
+## Matching on a failure
+
+An empty frame has nothing to classify, so `chill_plus` returns
+`Status::State`. A cage signature search on a cell thinner than twice the
+cutoff is refused with `Status::Argument`, and the message explains why.
 
 ```rust
+use seams::{ChillOptions, SignatureOptions, Status, System};
+
 fn main() -> Result<(), seams::Error> {
-    let mut system = seams::System::new()?;
-    let err = system
-        .chill_plus(&seams::ChillOptions::default())
-        .expect_err("an empty frame has no coordinates");
-    assert_eq!(err.status(), Some(seams::Status::State));
-    assert_eq!(err.code(), seams::Status::State as i32);
+    let mut empty = System::new()?;
+    let err = empty.chill_plus(&ChillOptions::default()).unwrap_err();
+    assert_eq!(err.status(), Some(Status::State));
+    println!("{err}");
+
+    let (xyz, edge) = seams::diamond8();
+    let mut thin = System::new()?;
+    thin.set_ortho(&xyz, edge, edge, edge)?;
+    let err = thin
+        .signature_cages(&SignatureOptions::default())
+        .err()
+        .expect("a thin cell is refused");
+    assert_eq!(err.status(), Some(Status::Argument));
+    println!("{}", err.message());
     Ok(())
 }
 ```
 
-The named statuses, and their integer values, are `Ok` (0), `Null` (1),
-`Range` (2), `Cell` (3), `Argument` (4), `State` (5), `Memory` (6), and
-`Internal` (7).
+```text
+system has no frame (no frame)
+cage search refused: the cell is thinner than twice the neighbour cutoff, so one pair can meet through more than one periodic image
+```
 
-## Ownership
+`Error` implements `std::error::Error`, so `?` converts it into
+`Box<dyn Error>` and into `anyhow::Error`.
 
-`System`, `Neighbours`, `Rings`, `Cages`, `Fingerprint`, and `Brine`
-own their C pointers. Moving a handle moves that ownership. Dropping it
-calls the matching destroy function. The raw pointer is not part of the
-public API.
+## Handles and ownership
 
-A handle is `Send`. It is not `Sync`: the C library requires exclusive
-use of one handle. Two frames on two threads may run `steinhardt`, `ql`,
-`q4q6`, or `q6bar` at the same time. `set_num_threads` is process-global.
-Do not call it while another thread is inside the library. Zero restores
-the library default. `num_threads` reads the width the next call will use.
+`System`, `Neighbours`, `Rings`, `Cages`, `Fingerprint` and `Brine` each own
+a native object. Moving a handle moves that ownership, and dropping it frees
+the object. The raw pointer is not part of the public API, so there is
+nothing to free by hand.
+
+A handle is `Send` but not `Sync`. The engine requires exclusive use of one
+handle, so move a handle to another thread rather than sharing it. Two
+frames on two threads may run `steinhardt`, `ql`, `q4q6` or `q6bar` at the
+same time.
+
+## Threads
+
+`set_num_threads(n)` sets the OpenMP width for the next call. It is
+process-global, so do not call it while another thread is inside the
+library. `0` restores the library default. `num_threads()` reads the width
+the next call will use.
+
+```rust
+fn main() -> Result<(), seams::Error> {
+    seams::set_num_threads(1)?;
+    println!("threads {}", seams::num_threads());
+    Ok(())
+}
+```
+
+```text
+threads 1
+```

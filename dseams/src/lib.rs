@@ -1,22 +1,19 @@
 /* Copyright (c) d-SEAMS developers */
 //! Safe calls into the d-SEAMS C API.
 //!
-//! The crates.io package is `dseams`; the library keeps the name `seams`,
-//! so code says `use seams::System`. The raw constants (graph and CHILL
-//! variants) are re-exported as [`ffi`].
+//! [d-SEAMS](https://dseams.info) classifies the molecules of a simulation
+//! frame. This crate gives Rust programs its analyses: CHILL and CHILL+ ice
+//! labels, Steinhardt order parameters, primitive rings, cages, radial
+//! distribution functions, hydrogen bonds, topological fingerprints and
+//! planar brine fronts.
 //!
-//! `dseams-sys` stays a raw FFI crate. This crate owns every handle, frees
-//! it in [`Drop`], and returns [`Result<T, Error>`](Result). The error text
-//! is the string from `seams_handle_error`. Coordinates and cutoffs are
-//! angstroms. A cell is nine LAMMPS numbers: origin, edge lengths, then
-//! the tilts `xy`, `xz`, `yz`.
-//!
-//! Analyses with several knobs take an options struct. Neighbour lists and
-//! rings yield iterators. A handle may move to another thread ([`Send`]).
-//! It is not [`Sync`]: the C library requires exclusive use of a handle.
-//! Separate handles may run the Steinhardt calls on separate threads.
+//! The crates.io package is `dseams`. The library keeps the name `seams`,
+//! so code says `use seams::System`.
 //!
 //! # Quick example
+//!
+//! Coordinates and cutoffs are in angstroms. This program classifies the
+//! eight-atom cubic ice cell that [`diamond8`] returns:
 //!
 //! ```
 //! let (xyz, edge) = seams::diamond8();
@@ -31,9 +28,60 @@
 //! # Ok::<(), seams::Error>(())
 //! ```
 //!
-//! `dseams-sys` links the `libseams` in `SEAMS_LIBDIR` when that is set,
-//! and otherwise finds an installed one through pkg-config. The `bundled`
-//! feature compiles a copy from the pinned seams-core sources instead.
+//! # How the crate is organised
+//!
+//! A [`System`] holds one frame. [`System::set_ortho`], [`System::set_frame`],
+//! [`System::set_atoms`] and [`System::read`] fill it, and every analysis is
+//! a method on it. A cell is nine numbers in the LAMMPS order: origin, edge
+//! lengths, then the tilts `xy`, `xz` and `yz`.
+//!
+//! - Ice labels: [`System::chill`] and [`System::chill_plus`] return a
+//!   [`Classification`] indexed by [`Label`]. They take [`ChillOptions`].
+//! - Order parameters: [`System::q4q6`], [`System::steinhardt`],
+//!   [`System::ql`] and [`System::q6bar`].
+//! - Structure: [`System::neighbours`] gives [`Neighbours`],
+//!   [`System::rings`] gives [`Rings`], and [`System::cages`] gives [`Cages`].
+//!   [`System::signature_cages`] counts closed cages by ring signature.
+//! - Distributions and bonds: [`System::rdf`], [`System::running_cn`],
+//!   [`System::density`] and [`System::hbonds`].
+//! - Topology: [`System::fingerprint`], [`System::prisms`] and
+//!   [`System::domains`].
+//! - Ice fronts in brine: [`System::brine`] gives [`Brine`].
+//!
+//! Analyses with several settings take an options struct that implements
+//! `Default`, so you change only the fields you need. Neighbour lists and
+//! rings can be iterated.
+//!
+//! # Errors, ownership and threads
+//!
+//! Every call that can fail returns [`Result<T, Error>`](Result). An
+//! [`Error`] carries the engine's message and, when the crate names it, a
+//! [`Status`]. Each handle ([`System`], [`Neighbours`], [`Rings`], [`Cages`],
+//! [`Fingerprint`] and [`Brine`]) owns a native object and frees it in
+//! [`Drop`].
+//!
+//! A handle may move to another thread ([`Send`]). It is not [`Sync`],
+//! because the C library requires exclusive use of a handle. Separate
+//! handles may run the Steinhardt calls on separate threads. The OpenMP
+//! width set by [`set_num_threads`] is process-global.
+//!
+//! # Choosing a libseams
+//!
+//! The `dseams-sys` build script links the shared `libseams` in the
+//! directory named by `SEAMS_LIBDIR` when that variable is set. Otherwise it
+//! uses the `bundled` feature, which compiles the engine from source and
+//! reads LAMMPS dumps and XYZ files, or an installed library found through
+//! pkg-config. `cargo add dseams --features bundled` is the shortest way to
+//! a working build.
+//!
+//! The raw C declarations are re-exported as [`ffi`].
+//!
+//! # Learn more
+//!
+//! The [book](https://rust.dseams.info) has a getting-started page and
+//! tutorials that run the analyses on real frames. The
+//! [engine book](https://docs.dseams.info) covers the science behind each
+//! analysis.
 
 #![deny(missing_docs)]
 
@@ -465,7 +513,7 @@ pub fn diamond8() -> (Vec<f64>, f64) {
     (xyz, a)
 }
 
-/// Library version text, for example `2.14.0`.
+/// Library version text, for example `2.14.1`.
 ///
 /// ```
 /// assert!(!seams::version().is_empty());

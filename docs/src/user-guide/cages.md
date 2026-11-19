@@ -1,65 +1,130 @@
 # Tutorial: cages
 
-Score hexagonal-cage and double-diamond-cage membership, then ask for
-closed cages of one ring signature.
+CHILL+ labels an atom by its local bonds. The cage analysis asks about
+larger structure: is the atom part of a finished hexagonal cage (the unit of
+ice Ih), a finished double-diamond cage (the unit of cubic ice), both, or
+neither? A second call, the signature search, counts closed polyhedra by
+the sizes of their faces, which is how clathrate cages such as the
+pentagonal dodecahedron are found.
 
 <iframe title="Ice Ih hexagonal cages, cubic double-diamond cages, then the clathrate cells" src="https://odysee.com/$/embed/dseams-cages:1c258cea9384acd2e21eeec509c5eedc050d08db" width="960" height="540" allowfullscreen></iframe>
 
-Ice Ih hexagonal cages, cubic double-diamond cages, then the clathrate cells.
+You need the two dumps from the [user guide](index.md) page.
 
-`CageOptions::default` uses a 3.5 angstrom cutoff, the seeded graph
-(mutual four-neighbour seeds plus union completions), `k` of 4, and
-`complete: false`. `Cages::counts` returns four disjoint populations:
-`hexagonal`, `cubic`, `water`, and `both`. On the eight-atom diamond
-those four numbers add up to the atom count:
+## Cage membership
+
+`System::cages` assigns every atom to one of four disjoint classes.
+`CageOptions::default` uses a 3.5 angstrom cutoff, the seeded neighbour
+graph (mutual four-nearest-neighbour seeds plus union completions) and
+`k` of 4. `Cages::counts` returns the population of each class and
+`Cages::labels` returns one `CageLabel` code per atom.
 
 ```rust
+use seams::{CageOptions, System};
+
 fn main() -> Result<(), seams::Error> {
-    let (xyz, edge) = seams::diamond8();
-    let mut system = seams::System::new()?;
-    system.set_ortho(&xyz, edge, edge, edge)?;
-    let cages = system.cages(&seams::CageOptions::default())?;
-    let counts = cages.counts()?;
-    assert_eq!(
-        counts.hexagonal + counts.cubic + counts.water + counts.both,
-        8
-    );
-    let labels = cages.labels(8)?;
-    assert_eq!(labels.len(), 8);
+    for path in ["ice1h.lammpstrj", "genice_sI.lammpstrj"] {
+        let mut frame = System::new()?;
+        frame.read(path, 1, -1)?;
+        let cages = frame.cages(&CageOptions::default())?;
+        let counts = cages.counts()?;
+        println!(
+            "{path}: hexagonal {} cubic {} water {} both {}",
+            counts.hexagonal, counts.cubic, counts.water, counts.both
+        );
+    }
     Ok(())
 }
 ```
 
-`labels` is one `CageLabel` code per atom: `Water` (0), `Hex` (1),
-`Cubic` (2), or `Both` (3). `Drop` frees the cage set.
+```text
+ice1h.lammpstrj: hexagonal 128 cubic 0 water 0 both 0
+genice_sI.lammpstrj: hexagonal 0 cubic 0 water 46 both 0
+```
 
-## A signature census
+All 128 atoms of ice Ih belong to hexagonal cages. The clathrate framework
+has no hexagonal or double-diamond cage, so its atoms fall in the
+remaining class, `water`. That class means "in no ice cage", not liquid
+water. `CageLabel` spells the four codes: `Water` (0), `Hex` (1), `Cubic`
+(2) and `Both` (3).
 
-`signature_cages` counts closed cages whose ring census matches `spec`.
-The default spec is `"512"`. On the eight-atom diamond that spec is
-rejected with `Status::Argument`:
+Cubic ice shows up as `cubic` membership. It needs a cell wide enough
+that no pair of atoms can meet through two periodic images, which means an
+edge of at least twice the cutoff. The 8-atom `diamond8` cell is too small,
+so this program tiles it twice along each axis to get 64 atoms:
 
 ```rust
+use seams::{CageOptions, System};
+
 fn main() -> Result<(), seams::Error> {
-    let (xyz, edge) = seams::diamond8();
-    let mut system = seams::System::new()?;
-    system.set_ortho(&xyz, edge, edge, edge)?;
-    let err = system
-        .signature_cages(&seams::SignatureOptions::default())
-        .unwrap_err();
-    assert_eq!(err.status(), Some(seams::Status::Argument));
+    let (cell, edge) = seams::diamond8();
+    let mut xyz = Vec::new();
+    for iz in 0..2 {
+        for iy in 0..2 {
+            for ix in 0..2 {
+                for site in cell.chunks(3) {
+                    xyz.extend([
+                        site[0] + ix as f64 * edge,
+                        site[1] + iy as f64 * edge,
+                        site[2] + iz as f64 * edge,
+                    ]);
+                }
+            }
+        }
+    }
+    let side = 2.0 * edge;
+
+    let mut frame = System::new()?;
+    frame.set_ortho(&xyz, side, side, side)?;
+    let counts = frame.cages(&CageOptions::default())?.counts()?;
+    println!("hexagonal {} cubic {}", counts.hexagonal, counts.cubic);
     Ok(())
 }
 ```
 
-`SignatureMatch` holds `cages` and `atoms`. `SignatureOptions.graph`
-selects the neighbour graph. The default is `Graph::Cutoff`.
+```text
+hexagonal 0 cubic 64
+```
 
-The sI guest frame in seams-core is what `dseams/tests/cpp_match.rs`
-compares with the C++ oracle when `SEAMS_CPP_ORACLE` and
-`SEAMS_SOURCE_ROOT` are set. The oxygen-only sI dump in this crate is
-the [bulk ice](bulk-ice.md) example: 46 atoms, all CHILL+ clathrate, 54
-primitive six-rings.
+## Counting cages by signature
 
-The engine how-to for the same cage search is
+`System::signature_cages` counts closed cages whose faces match a
+signature. The text `512` means twelve pentagons, `5^12`, and `51262` means
+twelve pentagons and two hexagons, `5^12 6^2`. These are the two cage
+types of sI. The result is a `SignatureMatch` with the number of cages and
+the number of atoms they cover.
+
+```rust
+use seams::{SignatureOptions, System};
+
+fn main() -> Result<(), seams::Error> {
+    let mut frame = System::new()?;
+    frame.read("genice_sI.lammpstrj", 1, -1)?;
+    for spec in ["512", "51262"] {
+        let found = frame.signature_cages(&SignatureOptions {
+            spec: spec.to_string(),
+            ..SignatureOptions::default()
+        })?;
+        println!("{spec}: {} cages, {} atoms", found.cages, found.atoms);
+    }
+    Ok(())
+}
+```
+
+```text
+512: 2 cages, 40 atoms
+51262: 6 cages, 46 atoms
+```
+
+One sI cell holds two small cages and six large ones. The six large cages
+cover all 46 framework atoms, and the two small cages cover 40 of them.
+`SignatureOptions.graph` selects the neighbour graph. It defaults to
+`Graph::Cutoff`.
+
+The signature search is stricter about the cell than the membership call.
+On a cell thinner than twice the cutoff it returns `Status::Argument`
+instead of a count, and a signature that is not a valid ring census gets
+the same status with a message that names the text.
+
+For the same search with the `seams` command, see the engine how-to
 [Cage search](https://docs.dseams.info/howto/cages-trace.html).

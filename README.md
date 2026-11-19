@@ -1,172 +1,111 @@
 # dseams-rs
 
-Rust bindings to [d-SEAMS](https://dseams.info), the ice, clathrate and ring
-analysis engine for molecular simulation frames. The C++ engine and its C
-API (`libseams`, header `seams.h`) live in
-[seams-core](https://github.com/d-SEAMS/seams-core); this repository holds
+Rust interface to [d-SEAMS](https://dseams.info), the ice, clathrate and
+ring analysis engine for molecular simulation frames. It labels ice and
+clathrate with CHILL and CHILL+, computes Steinhardt order parameters,
+finds primitive rings and cages, and measures planar ice fronts in brine.
+
+The C++ engine and its C API (`libseams`, header `seams.h`) live in
+[seams-core](https://github.com/d-SEAMS/seams-core). This repository holds
 the two crates on top of it:
 
 | Crate | Library name | What it is |
 |---|---|---|
+| [`dseams`](dseams) | `seams` | Safe handles, options structs, iterators and `Result` errors |
 | [`dseams-sys`](dseams-sys) | `seams_sys` | Raw FFI declarations, generated from `seams.h` |
-| [`dseams`](dseams) | `seams` | Safe handles, options structs, iterators, `Result` errors |
 
 The crates.io name `seams` belongs to an unrelated project, hence the `d`.
+Code says `use seams::System`.
 
-```toml
-[dependencies]
-dseams = "2.14.1"
+## Install
+
+```bash
+cargo add dseams --features bundled
 ```
+
+The `bundled` feature compiles the engine from source, so nothing else needs
+installing. It needs Rust 1.85 or newer and a C++20 compiler with OpenMP on
+x86_64, and it reads LAMMPS dumps and XYZ files.
+
+## A first result
+
+```rust
+use seams::{ChillOptions, Label, System};
+
+fn main() -> Result<(), seams::Error> {
+    let (xyz, edge) = seams::diamond8();
+    let mut frame = System::new()?;
+    frame.set_ortho(&xyz, edge, edge, edge)?;
+    let ice = frame.chill_plus(&ChillOptions::default())?;
+    println!("cubic atoms: {}", ice.counts[Label::Cubic as usize]);
+    Ok(())
+}
+```
+
+```text
+cubic atoms: 8
+```
+
+Coordinates and cutoffs are in angstroms. A cell is nine numbers in the
+LAMMPS order: origin, edge lengths, then the tilts `xy`, `xz` and `yz`.
 
 ## Linking libseams
 
-`dseams-sys` does not run bindgen; the declarations are checked in. Its
-build script takes the first of:
+`dseams-sys` does not run bindgen, because the declarations are checked in.
+Its build script uses the first of these that applies:
 
-1. **`SEAMS_LIBDIR`**: the directory holding the shared `libseams`, a meson
-   build tree's `build/src` or an install prefix's `lib`. `SEAMS_INCLUDE`
-   (a path list) names the header directories when they are not
-   `$SEAMS_LIBDIR/../include`.
-2. **Feature `bundled`**: compile the C API and Eigen 3.4.0 from the seams-core
-   sources in `dseams-sys/vendor/` with the `cc` crate. x86_64 only, C++20
-   with OpenMP; reads LAMMPS dumps and XYZ but not `.con` or chemfiles.
+1. **`SEAMS_LIBDIR`**: the directory that holds the shared `libseams`: the
+   `src` directory of a meson build tree, or the library directory of an
+   install prefix. `SEAMS_INCLUDE`, a path list, optionally names the
+   header directories.
+2. **Feature `bundled`**: compile the C API and Eigen 3.4.0 from the
+   engine sources that ship in the package, with the `cc` crate. It needs
+   x86_64 and C++20 with OpenMP, and it reads LAMMPS dumps and XYZ but not
+   `.con` files or chemfiles formats.
 3. **pkg-config**: module `seams`, at least 2.14.0 and below 3.0.0.
 
-The crate version tracks the seams-core release. `seams-core.env` names the
-seams-core tag that CI builds and that `vendor.py` vendors: `v2.14.1` of
-[d-SEAMS/seams-core](https://github.com/d-SEAMS/seams-core).
-
-## Building and testing against a seams-core build
-
-```bash
-. dseams-rs/seams-core.env
-git clone "$SEAMS_CORE_REPO" seams-core
-cd seams-core
-git checkout "$SEAMS_CORE_REF"
-pixi run meson setup bbdir -Dwith_tests=true -Dwith_cli=false
-pixi run ninja -C bbdir src/libseams.so bindings/binding_oracle
-cd ../dseams-rs
-
-export SEAMS_LIBDIR=$PWD/../seams-core/bbdir/src
-export SEAMS_INCLUDE=$PWD/../seams-core/include:$SEAMS_LIBDIR
-# Optional: compare every analysis with the C++ path (dseams/tests/cpp_match.rs).
-export SEAMS_CPP_ORACLE=$PWD/../seams-core/bbdir/bindings/binding_oracle
-export SEAMS_SOURCE_ROOT=$PWD/../seams-core
-export OMP_NUM_THREADS=1
-
-cargo fmt --all -- --check
-cargo clippy --all-targets -- -D warnings
-cargo test -- --test-threads=1
-cargo test --examples -- --test-threads=1
-```
-
-The tests and examples get an rpath to `SEAMS_LIBDIR`; other programs need
-it on `LD_LIBRARY_PATH`.
-
-## The bundled build
-
-```bash
-python3 dseams-sys/vendor.py                       # download the pinned tag
-python3 dseams-sys/vendor.py --source ../seams-core  # or git archive it from a checkout
-cargo test --features bundled --test ice --examples
-```
-
-## Examples
-
-`dseams/examples/` holds `ice` (a built diamond cell), `minimal` (the GenIce
-sI cell), `ice_ih` (the ice Ih census) and `lang_tasks` (the census every
-d-SEAMS language front prints, shown in the ice Ih tutorial). Each
-reads its dump from `dseams/tests/data/` unless a path is given, and
-`cargo test --examples` checks its output.
-
-## Regenerating the declarations
-
-```bash
-python3 dseams-sys/gen_sys.py ../seams-core/include/seams.h dseams-sys/src/lib.rs
-```
-
-CI fails when the checked-in `dseams-sys/src/lib.rs` differs from this
-output for the pinned header.
-
-## Publishing
-
-Both crates publish from the workspace, `dseams-sys` first. `vendor/` must
-be filled so the `bundled` feature works from crates.io. Pushing the tag
-`vX.Y.Z` runs [`.github/workflows/publish.yml`](.github/workflows/publish.yml),
-which vendors the seams-core tag and publishes `dseams-sys`, then `dseams`.
-
-```bash
-python3 dseams-sys/vendor.py
-cargo publish --workspace --dry-run --allow-dirty
-```
-
-`--allow-dirty` is there because `vendor/` is generated and gitignored.
-`--workspace` checks `dseams` against the `dseams-sys` package just built.
-A lone `cargo publish -p dseams` waits until that version is on crates.io,
-which is how the tag workflow publishes them.
-The first publish of each crate needs a crates.io API token in
-`CARGO_REGISTRY_TOKEN` on the `release` environment. Trusted publishing
-can be saved only after the crate exists. Once each crate lists this
-repository, workflow `publish.yml`, and environment `release`, remove the
-token and later tags authenticate with GitHub OIDC.
-
-## Development
-
-### Relation to seams-core
-
-seams-core owns the engine, the C API and its header, the CLI, and the C++
-oracle `binding_oracle` that `dseams/tests/cpp_match.rs` compares against.
-This repository owns the Rust side only. A new analysis, a changed number or
-a new C function lands in seams-core first; it is bound here once a
-seams-core commit carries it, by moving `SEAMS_CORE_REF` in
-`seams-core.env` and regenerating `dseams-sys/src/lib.rs`. CI always builds
-seams-core at that ref.
-
-### Against a local seams-core checkout
-
-Keep seams-core next to this repository, as in
-[Building and testing against a seams-core build](#building-and-testing-against-a-seams-core-build):
-`meson setup` with `-Dwith_tests=true` also builds the oracle, and
-`SEAMS_LIBDIR` points at its `bbdir/src`.
-
-To try an unreleased engine change, check out that branch in
-`../seams-core` instead of the pinned ref and rebuild `bbdir`. The tests
-load `libseams.so` through the rpath at run time, so they pick up the
-rebuilt library without a `cargo clean`. Unset `SEAMS_LIBDIR` and set
-`PKG_CONFIG_PATH=$PWD/../seams-core/bbdir/meson-uninstalled` to exercise
-the pkg-config path against the same tree. With `dseams-sys/vendor/`
-absent, `SEAMS_SOURCE_DIR=$PWD/../seams-core` and `--features bundled`
-compile the bundled copy from that checkout without running `vendor.py`;
-Eigen 3.4 then comes from `EIGEN3_INCLUDE_DIR` (the pixi environment has it
-at `../seams-core/.pixi/envs/default/include/eigen3`) or pkg-config.
-
-### Release order
-
-1. seams-core tags `vX.Y.Z` on d-SEAMS/seams-core.
-2. Here, `seams-core.env` moves to `SEAMS_CORE_REPO=https://github.com/d-SEAMS/seams-core`
-   and `SEAMS_CORE_REF=vX.Y.Z`, the workspace version and the `dseams-sys`
-   requirement become `X.Y.Z`, `towncrier build --version X.Y.Z` writes the
-   changelog, and CI passes on that commit.
-3. Tag `vX.Y.Z` here. `.github/workflows/publish.yml` vendors the pinned
-   seams-core tag and publishes `dseams-sys`, then `dseams`.
-
-Commits follow Conventional Commits, and each user-visible change adds a
-fragment under `changelog.d/`.
+Programs linked to a shared library need its directory on
+`LD_LIBRARY_PATH` at run time. The [link how-to](https://rust.dseams.info/user-guide/link.html)
+has the commands for each route, including building `libseams` from
+seams-core.
 
 ## Documentation
 
-- Site: <https://rust.dseams.info/>, the book with the rustdoc
-  pages under [`api/`](https://rust.dseams.info/api/seams/index.html).
-- docs.rs: [`dseams`](https://docs.rs/dseams) and
-  [`dseams-sys`](https://docs.rs/dseams-sys).
-- Engine book: [the Rust page](https://docs.dseams.info/stable/rust.html)
-  of [docs.dseams.info](https://docs.dseams.info).
-- Video: [Rust on ice Ih](https://odysee.com/dseams-rust:687055b1ac9dfe7596006cb4f2fa466de9492ca5).
+- [The book](https://rust.dseams.info/): getting started, seven tutorials
+  on real frames, how-to pages, and the API reference.
+- [docs.rs/dseams](https://docs.rs/dseams) and
+  [docs.rs/dseams-sys](https://docs.rs/dseams-sys): the API reference for
+  each release.
+- [The engine book](https://docs.dseams.info), with its
+  [Rust page](https://docs.dseams.info/stable/rust.html).
+- [Rust on ice Ih](https://odysee.com/dseams-rust:687055b1ac9dfe7596006cb4f2fa466de9492ca5),
+  a video of the ice Ih census.
 
-The book under `docs/` has four parts: getting started, the user guide,
-the API reference, and development. `mdbook build docs` renders it, and
-`cargo doc --no-deps` writes the API reference. A push to `main` deploys
-both to the site.
+The [examples](dseams/examples) are runnable programs: `ice` (a cubic ice
+crystal), `minimal` (the sI clathrate framework), `ice_ih` (the ice Ih
+census) and `lang_tasks` (the census that every d-SEAMS language binding
+prints).
+
+## Building from source and contributing
+
+[Building from source](https://rust.dseams.info/development.html) covers
+cloning this repository, running the tests and examples, and building the
+documentation. Conventions for changes are in [AGENTS.md](AGENTS.md).
+
+## Citing
+
+If you use d-SEAMS in published work, cite R. Goswami, A. Goswami and
+J. K. Singh, "d-SEAMS: Deferred Structural Elucidation Analysis for
+Molecular Simulations", *Journal of Chemical Information and Modeling* 60
+(4), 2169-2177, [doi:10.1021/acs.jcim.0c00031](https://doi.org/10.1021/acs.jcim.0c00031).
+
+## Other language bindings
+
+- [PydSEAMSlib](https://github.com/d-SEAMS/PydSEAMSlib): Python.
+- [Dseams.jl](https://github.com/d-SEAMS/Dseams.jl): Julia.
+- [dseams-r](https://github.com/d-SEAMS/dseams-r): R.
+- [dseams-fortran](https://github.com/d-SEAMS/dseams-fortran): Fortran.
+- [yodaStruct](https://github.com/d-SEAMS/yodaStruct): Lua.
 
 ## License
 

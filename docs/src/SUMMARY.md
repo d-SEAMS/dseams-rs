@@ -1,6 +1,6 @@
 # Summary
 
-[dseams](index.md)
+[Introduction](index.md)
 
 # Getting started
 
@@ -24,6 +24,6 @@
 
 - [API reference](api.md)
 
-# Development
+# Source
 
-- [Development](development.md)
+- [Building from source](development.md)

@@ -1,23 +1,27 @@
 # How to: read a trajectory
 
-A `System` owns one frame. Four calls fill it.
+A `System` holds one frame. It is empty until one of four calls fills it,
+and `count` reports how many atoms it holds, which is 0 for an empty frame.
 
 | Call | What it stores |
 | --- | --- |
-| `set_ortho(xyz, lx, ly, lz)` | Coordinates in an orthorhombic cell whose origin is zero. `xyz` is `x, y, z` triples, in angstroms. |
+| `set_ortho(xyz, lx, ly, lz)` | Coordinates in a box with zero origin and no tilt. `xyz` is a flat list of `x, y, z` triples in angstroms. |
 | `set_frame(xyz, box9)` | Coordinates and a nine-number cell: `ox, oy, oz, lx, ly, lz, xy, xz, yz`. |
-| `set_atoms(xyz, box9, types, ids)` | The same cell, plus optional species and ids. Empty slices leave those columns unset. |
-| `read(path, frame, type_filter)` | One frame from a path. `frame` is 1-based. A negative `type_filter` keeps every atom. |
+| `set_atoms(xyz, box9, types, ids)` | The same cell, plus optional atom types and ids. Empty slices leave those columns unset. |
+| `read(path, frame, type_filter)` | One frame from a file. |
 
-`count` is the number of points. It is 0 until one of those calls
-succeeds.
+## From arrays in memory
+
+Use `set_ortho` for a rectangular box and `set_frame` for a tilted one.
+The tilts are the LAMMPS `xy`, `xz` and `yz`, and a zero tilt means an
+orthogonal axis.
 
 ```rust
 fn main() -> Result<(), seams::Error> {
     let (xyz, edge) = seams::diamond8();
+
     let mut ortho = seams::System::new()?;
     ortho.set_ortho(&xyz, edge, edge, edge)?;
-    assert_eq!(ortho.count(), 8);
 
     let mut box9 = [0.0; 9];
     box9[3] = edge;
@@ -26,29 +30,57 @@ fn main() -> Result<(), seams::Error> {
     box9[6] = 0.3;
     let mut tilted = seams::System::new()?;
     tilted.set_frame(&xyz, &box9)?;
-    assert_eq!(tilted.count(), 8);
+
+    println!("{} atoms, {} atoms", ortho.count(), tilted.count());
     Ok(())
 }
 ```
 
-`read` accepts XYZ, CON, a chemfiles format, or a LAMMPS dump when the
-linked `libseams` was built with that reader. The bundled library reads
-LAMMPS dumps and XYZ. The ice dumps in this crate are LAMMPS, every atom
-type 1:
+```text
+8 atoms, 8 atoms
+```
+
+Use `set_atoms` when species matter, as in the [brine tutorial](brine.md).
+Pass one type per atom, and an empty slice for the ids you do not have.
+
+## From a file
+
+`read` takes a path, a **1-based** frame number and a type filter. A
+negative filter keeps every atom, and a positive one keeps only atoms of
+that type. The format is picked from the file. The bundled engine reads
+LAMMPS dumps and XYZ files. A `libseams` built with more readers also reads
+`.con` files and the chemfiles formats. See [Link libseams](link.md).
+
+`nframes` counts the frames in a file, which tells you how far a loop may
+go:
 
 ```rust
+use seams::{ChillOptions, Label, System};
+
 fn main() -> Result<(), seams::Error> {
-    let mut system = seams::System::new()?;
-    system.read("dseams/tests/data/ice1h.lammpstrj", 1, 1)?;
-    assert_eq!(system.count(), 128);
+    let path = "ice1h.lammpstrj";
+    let frames = seams::nframes(path)?;
+    for index in 1..=frames as i32 {
+        let mut frame = System::new()?;
+        frame.read(path, index, -1)?;
+        let ice = frame.chill_plus(&ChillOptions::default())?;
+        println!(
+            "frame {index}: {} atoms, {} hexagonal",
+            frame.count(),
+            ice.counts[Label::Hexagonal as usize]
+        );
+    }
     Ok(())
 }
 ```
 
-`nframes(path)` counts frames in a trajectory. A nul byte inside the
-path is rejected before the call reaches the library; `code()` is 4
-(`SEAMS_ERR_ARG`) and `message()` is `text contains a nul`.
+```text
+frame 1: 128 atoms, 128 hexagonal
+```
 
-`examples/ice_ih.rs` and `examples/lang_tasks.rs` call `read`.
-`examples/minimal.rs` parses a LAMMPS dump in Rust and calls
-`set_ortho`, which is the path its test locks.
+This runs on the file from the [ice Ih tutorial](ice-ih.md). A frame number
+past the end of the file, or a type filter that matches no atom, is a
+`Status::Range` error, so loop up to `nframes`.
+
+A path with a nul byte is rejected before it reaches the library, with
+code 4 and the message `text contains a nul`.

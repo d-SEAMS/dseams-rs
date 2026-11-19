@@ -2,7 +2,7 @@
 
 > dseams-rs holds the Rust crates for d-SEAMS: `dseams-sys`, raw declarations for the libseams C API, and `dseams`, safe handles for CHILL and CHILL+ ice labels, Steinhardt order parameters, primitive rings, cages, RDFs, hydrogen bonds and topological fingerprints of molecular simulation frames.
 
-The crates.io packages are `dseams-sys` and `dseams`; the library names are `seams_sys` and `seams`, so code says `use seams::System`. Rust 1.85 or newer builds them. `dseams-sys` links the shared libseams in `SEAMS_LIBDIR`, else the `seams` pkg-config module (2.14 <= v < 3); the `bundled` feature compiles one from the seams-core tag in `seams-core.env` instead. The crate version is the seams-core release it binds. Contributor instructions are in the contributing guide at the repository root.
+The crates.io packages are `dseams-sys` and `dseams`; the library names are `seams_sys` and `seams`, so code says `use seams::System`. Rust 1.85 or newer builds them. `cargo add dseams --features bundled` compiles the engine from source (x86_64, C++20 with OpenMP; reads LAMMPS dumps and XYZ). Without that feature, `dseams-sys` links the shared libseams in `SEAMS_LIBDIR`, else the `seams` pkg-config module (2.14 <= v < 3). The crate version is the seams-core release it binds.
 
 ## Rust API
 
@@ -14,17 +14,17 @@ status code, or a rejected argument. `ChillOptions` is the cutoff, species
 filter, neighbour graph, and threshold table for CHILL and CHILL+.
 `Rings` is primitive rings, with histograms, fractions, and vertex
 iteration. `dseams-sys` is the raw declarations generated from `seams.h`.
-The published pages are the docs.rs builds named by each crate's
-`documentation` field.
+The published pages are on docs.rs for each crate.
 
 ## Repository docs
 
-- [README](https://github.com/d-SEAMS/dseams-rs/blob/main/README.md): Install, how libseams is found, building against seams-core, the bundled build, publishing.
-- [Book](https://github.com/d-SEAMS/dseams-rs/blob/main/docs/src/SUMMARY.md): Getting started, user guide, rustdoc API reference, and development.
-- [Getting started](https://github.com/d-SEAMS/dseams-rs/blob/main/docs/src/getting-started.md): Install, link libseams, classify the eight-atom cell.
+- [README](https://github.com/d-SEAMS/dseams-rs/blob/main/README.md): Install, how libseams is found, documentation links.
+- [Book](https://rust.dseams.info/): Getting started, tutorials, how-to pages, the API reference, and building from source.
+- [Getting started](https://github.com/d-SEAMS/dseams-rs/blob/main/docs/src/getting-started.md): Install, create a project, classify the eight-atom cell.
 - [Ice Ih tutorial](https://github.com/d-SEAMS/dseams-rs/blob/main/docs/src/user-guide/ice-ih.md): The ice Ih census every d-SEAMS language front prints, in Rust.
-- [dseams-sys README](https://github.com/d-SEAMS/dseams-rs/blob/main/dseams-sys/README.md): Link order, the `bundled` feature, `DEP_SEAMS_RPATH`, licenses of the bundled Eigen.
-- [CHANGELOG](https://github.com/d-SEAMS/dseams-rs/blob/main/CHANGELOG.md): Released changes; unreleased fragments are in `changelog.d/`.
+- [Link libseams](https://github.com/d-SEAMS/dseams-rs/blob/main/docs/src/user-guide/link.md): The bundled feature, `SEAMS_LIBDIR` and pkg-config.
+- [dseams-sys README](https://github.com/d-SEAMS/dseams-rs/blob/main/dseams-sys/README.md): Link order, the `bundled` feature, licenses of the bundled Eigen.
+- [CHANGELOG](https://github.com/d-SEAMS/dseams-rs/blob/main/CHANGELOG.md): Released changes.
 
 ## Engine
 
