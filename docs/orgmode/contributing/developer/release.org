@@ -1,0 +1,84 @@
+#+TITLE: Release Process
+#+OPTIONS: toc:nil todo:nil num:nil author:nil title:nil
+#+STARTUP: content
+
+* Release Process
+
+dseams-rs has one version: =[workspace.package].version= in the root
+=Cargo.toml=. Both crates inherit it. Cogapp renders every other current-version
+copy listed in =ci/version/files.txt=. Git tags use =vX.Y.Z=, as set by
+=tag_prefix= in =cog.toml=.
+
+Towncrier owns =CHANGELOG.md=. Add one file per user-visible change under
+=newsfragments/= and preview the next section with:
+
+#+begin_src bash
+towncrier build --draft
+#+end_src
+
+** Tools
+
+Install Rust 1.85 or newer, a C++20 compiler with OpenMP, Python 3, mdBook
+0.5.4, towncrier, cogapp, cargo-edit and cocogitto 7 or newer. =cog= must be
+cocogitto; the =cogapp= Python package is invoked as =python3 -m cogapp=.
+
+** Clean-clone validation
+
+Run every non-publishing step from a clean clone. The seams-core checkout must
+hold the tag named by =seams-core.env=.
+
+#+begin_src bash
+git clone https://github.com/d-SEAMS/dseams-rs
+git clone https://github.com/d-SEAMS/seams-core
+cd dseams-rs
+. ./seams-core.env
+git -C ../seams-core checkout "$SEAMS_CORE_REF"
+python3 dseams-sys/vendor.py --source ../seams-core
+
+cargo fmt --all -- --check
+cargo clippy --features bundled --all-targets -- -D warnings
+cargo test --features bundled -- --test-threads=1
+cargo test --features bundled --examples -- --test-threads=1
+RUSTDOCFLAGS="-D warnings" cargo doc --features bundled --no-deps
+mdbook build docs
+
+python3 -m cogapp --check -I ci/version \
+  $(awk 'NF && $1 !~ /^#/' ci/version/files.txt)
+towncrier build --draft
+cog check
+cog bump --auto --dry-run
+cargo package --workspace --locked --allow-dirty
+#+end_src
+
+The full shared-library, optional-reader, oracle and documentation checks are
+in [[file:testing.org][testing.org]]. They must also pass.
+
+** Prepare the release
+
+1. Confirm the default branch is green and every user-visible change has a
+   fragment.
+2. Run the clean-clone validation above.
+3. Preview the computed version with =cog bump --auto --dry-run=, or choose an
+   explicit semver with =cog bump --version X.Y.Z --dry-run=.
+4. Run =cog bump --version X.Y.Z=. Its hooks update the workspace version with
+   cargo-edit, render the cogapp copies, refresh =Cargo.lock= offline, build the
+   towncrier section, and check locked Cargo metadata. Cocogitto creates the
+   version commit and annotated =vX.Y.Z= tag.
+5. Review the version commit, tag and release notes.
+6. Push the commit and tag:
+
+#+begin_src bash
+git push origin HEAD --follow-tags
+#+end_src
+
+** Publish
+
+The =vX.Y.Z= tag starts =.github/workflows/publish.yml=. It verifies that the
+tag, workspace version and seams-core pin agree, vendors the pinned engine,
+publishes =dseams-sys= to crates.io, waits for the index, and then publishes
+=dseams=. The workflow uses a crates.io trusted publisher, with
+=CARGO_REGISTRY_TOKEN= only as the first-publish fallback.
+
+Do not publish either crate by hand while the workflow is available. After the
+workflow succeeds, verify both crate versions on crates.io and the docs.rs
+builds.

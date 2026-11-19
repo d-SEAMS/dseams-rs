@@ -25,9 +25,10 @@ them with the `cc` crate. You need:
 - an x86_64 machine, because the shell classifier uses AVX2.
 
 Set `CC` and `CXX` to choose the compiler, for example
-`CC=gcc CXX=g++ cargo build`. The bundled engine reads LAMMPS dumps and XYZ
-files. It does not read `.con` files or the chemfiles formats. Use one of
-the next two routes when you need those readers.
+`CC=gcc CXX=g++ cargo build`. The bundled engine always reads LAMMPS dumps
+and XYZ files. Its build script uses chemfiles 0.10 and readcon-core 0.16
+when their pkg-config modules are available, and otherwise leaves those
+optional readers out.
 
 Programs built this way link the engine statically. They run anywhere,
 with no library path to set.
@@ -35,10 +36,17 @@ with no library path to set.
 ## Use a libseams you built
 
 Build and install the engine from its repository. This uses the tag
+<!-- [[[cog import dseams_version as v; cog.outl(f'`v{v.VERSION}`, the release that `dseams` {v.VERSION} is built against:')]]] -->
 `v2.14.1`, the release that `dseams` 2.14.1 is built against:
+<!-- [[[end]]] -->
 
+<!-- [[[cog import dseams_version as v; cog.outl(f'```bash\ngit clone --branch v{v.VERSION} https://github.com/d-SEAMS/seams-core\n```')]]] -->
 ```bash
 git clone --branch v2.14.1 https://github.com/d-SEAMS/seams-core
+```
+<!-- [[[end]]] -->
+
+```bash
 cd seams-core
 meson setup build --prefix="$HOME/.local/libseams" -Dwith_tests=false -Dwith_cli=false
 meson compile -C build
@@ -86,17 +94,21 @@ and chemfiles when those were enabled.
 ## Check what you linked
 
 `seams::version()` returns the library's version text, and `seams::abi()`
-returns its ABI number:
+returns its ABI number. `seams::has_chemfiles()` and
+`seams::has_readcon()` report the readers compiled into the linked engine:
 
 ```rust
 fn main() {
     println!("libseams {} (ABI {})", seams::version(), seams::abi());
+    let _readers = (seams::has_chemfiles(), seams::has_readcon());
 }
 ```
 
+<!-- [[[cog import dseams_version as v; cog.outl(f'```text\nlibseams {v.VERSION} (ABI 1)\n```')]]] -->
 ```text
 libseams 2.14.1 (ABI 1)
 ```
+<!-- [[[end]]] -->
 
 ## When it fails
 

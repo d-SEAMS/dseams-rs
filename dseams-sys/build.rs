@@ -13,6 +13,12 @@ use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
 
+#[derive(Clone, Copy, Default)]
+struct ReaderFeatures {
+    chemfiles: bool,
+    readcon: bool,
+}
+
 fn main() {
     println!("cargo:rerun-if-changed=build.rs");
     println!("cargo:rerun-if-changed=sources.txt");
@@ -32,14 +38,20 @@ fn main() {
     }
 
     if let Some(dir) = env::var_os("SEAMS_LIBDIR").or_else(|| env::var_os("SEAMS_LIB_DIR")) {
-        link_prebuilt(&PathBuf::from(dir));
+        let features = link_prebuilt(&PathBuf::from(dir));
+        export_reader_features(features);
         return;
     }
 
     #[cfg(feature = "bundled")]
-    build_bundled();
+    export_reader_features(build_bundled());
     #[cfg(not(feature = "bundled"))]
-    probe_pkg_config();
+    export_reader_features(probe_pkg_config());
+}
+
+fn export_reader_features(features: ReaderFeatures) {
+    println!("cargo:chemfiles={}", u8::from(features.chemfiles));
+    println!("cargo:readcon={}", u8::from(features.readcon));
 }
 
 fn crate_version() -> (u32, u32) {
@@ -103,16 +115,16 @@ fn export_rpath(dirs: &[PathBuf]) {
     println!("cargo:rpath={}", joined.to_string_lossy());
 }
 
-fn link_prebuilt(dir: &Path) {
-    let found = fs::read_dir(dir)
+fn link_prebuilt(dir: &Path) -> ReaderFeatures {
+    let library = fs::read_dir(dir)
         .unwrap_or_else(|e| panic!("SEAMS_LIBDIR={}: {e}", dir.display()))
         .filter_map(Result::ok)
-        .any(|entry| {
+        .find(|entry| {
             let name = entry.file_name();
             let name = name.to_string_lossy();
             name.starts_with("libseams.") || name == "seams.lib" || name == "seams.dll"
         });
-    if !found {
+    if library.is_none() {
         panic!("SEAMS_LIBDIR={} holds no libseams", dir.display());
     }
     println!("cargo:rustc-link-search=native={}", dir.display());
@@ -145,10 +157,30 @@ fn link_prebuilt(dir: &Path) {
     check_header_version(&include);
     export_include(&include);
     export_rpath(&[dir.to_path_buf()]);
+    prebuilt_reader_features(dir)
+}
+
+fn prebuilt_reader_features(dir: &Path) -> ReaderFeatures {
+    let mut text = String::new();
+    for candidate in [
+        dir.join("pkgconfig/seams.pc"),
+        dir.parent()
+            .unwrap_or(dir)
+            .join("meson-uninstalled/seams.pc"),
+        dir.parent().unwrap_or(dir).join("build.ninja"),
+    ] {
+        if let Ok(found) = fs::read_to_string(candidate) {
+            text.push_str(&found);
+        }
+    }
+    ReaderFeatures {
+        chemfiles: text.contains("SEAMS_HAS_CHEMFILES"),
+        readcon: text.contains("SEAMS_HAS_READCON"),
+    }
 }
 
 #[cfg(not(feature = "bundled"))]
-fn probe_pkg_config() {
+fn probe_pkg_config() -> ReaderFeatures {
     let (major, minor) = crate_version();
     let lib = pkg_config::Config::new()
         .range_version(format!("{major}.{minor}.0").as_str()..format!("{}.0.0", major + 1).as_str())
@@ -163,6 +195,10 @@ fn probe_pkg_config() {
     check_header_version(&lib.include_paths);
     export_include(&lib.include_paths);
     export_rpath(&lib.link_paths);
+    ReaderFeatures {
+        chemfiles: lib.defines.contains_key("SEAMS_HAS_CHEMFILES"),
+        readcon: lib.defines.contains_key("SEAMS_HAS_READCON"),
+    }
 }
 
 #[cfg(feature = "bundled")]
@@ -210,7 +246,7 @@ fn eigen_include(root: &Path) -> Vec<PathBuf> {
 }
 
 #[cfg(feature = "bundled")]
-fn build_bundled() {
+fn build_bundled() -> ReaderFeatures {
     let target_arch = env::var("CARGO_CFG_TARGET_ARCH").unwrap();
     if target_arch != "x86_64" {
         panic!(
@@ -263,6 +299,18 @@ fn build_bundled() {
     }
 
     let eigen = eigen_include(&root);
+    let chemfiles = pkg_config::Config::new()
+        .range_version("0.10.4".."0.11")
+        .probe("chemfiles")
+        .ok();
+    let readcon = pkg_config::Config::new()
+        .atleast_version("0.16.2")
+        .probe("readcon-core")
+        .ok();
+    let features = ReaderFeatures {
+        chemfiles: chemfiles.is_some(),
+        readcon: readcon.is_some(),
+    };
     let base = || {
         let mut build = cc::Build::new();
         build
@@ -278,6 +326,16 @@ fn build_bundled() {
             .include(root.join("include"))
             .include(&generated)
             .includes(&eigen);
+        if let Some(dependency) = &chemfiles {
+            build
+                .define("SEAMS_HAS_CHEMFILES", "1")
+                .includes(&dependency.include_paths);
+        }
+        if let Some(dependency) = &readcon {
+            build
+                .define("SEAMS_HAS_READCON", "1")
+                .includes(&dependency.include_paths);
+        }
         if env::var_os("CARGO_CFG_DEBUG_ASSERTIONS").is_none() {
             build.define("NDEBUG", None);
         }
@@ -311,7 +369,14 @@ fn build_bundled() {
     // GCC's private directory, which is where the unversioned libstdc++
     // and libgomp live.
     add_cxx_lib_search(&compiler);
+    let reader_rpaths: Vec<PathBuf> = chemfiles
+        .iter()
+        .chain(readcon.iter())
+        .flat_map(|dependency| dependency.link_paths.iter().cloned())
+        .collect();
+    export_rpath(&reader_rpaths);
     export_include(&[root.join("include"), generated]);
+    features
 }
 
 #[cfg(feature = "bundled")]

@@ -1,7 +1,7 @@
 # C++ translation units behind the C API (include/seams.h), relative to
 # the seams-core root. This is the link closure of src/seams_api.cpp over
-# libyodaLib built with Eigen and OpenMP and no optional backend.
-# build.rs compiles this list; vendor.py copies it into vendor/.
+# libyodaLib built with Eigen and OpenMP. build.rs optionally adds the
+# chemfiles and readcon-core dependencies; vendor.py copies this list.
 src/seams_api.cpp
 src/absOrientation.cpp
 src/bond.cpp

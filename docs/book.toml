@@ -1,6 +1,9 @@
 [book]
 title = "dseams Rust Documentation"
-authors = ["Rohit Goswami"]
+authors = [
+  "Rohit Goswami",
+  "Ruhila Goswami (ORCID 0000-0002-5443-9356)",
+]
 description = "Rust API and user guide for d-SEAMS ice, clathrate cage and primitive ring analysis"
 language = "en"
 src = "src"

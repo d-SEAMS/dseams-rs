@@ -1,0 +1,38 @@
+#+TITLE: Developer FAQ
+#+OPTIONS: toc:nil todo:nil num:nil author:nil title:nil
+#+STARTUP: content
+
+* Developer FAQ
+
+** Where do new analyses and readers belong?
+
+The engine, C API, format readers and analysis results belong in
+[[https://github.com/d-SEAMS/seams-core][seams-core]]. This repository wraps a
+released C API and controls how the bundled engine is compiled. Do not copy a
+reader implementation into the Rust crates.
+
+** How are optional readers enabled?
+
+The bundled build asks pkg-config for chemfiles =0.10.4 <= version < 0.11= and
+readcon-core =>= 0.16.2=. When found, their include and link settings and the
+=SEAMS_HAS_CHEMFILES= or =SEAMS_HAS_READCON= definitions are applied to the
+seams-core sources. Missing optional libraries do not stop a build.
+
+An externally built libseams retains its own readers. =has_chemfiles()= and
+=has_readcon()= report the metadata of the engine selected by the build.
+
+** Why are the raw declarations checked in?
+
+=dseams-sys/src/lib.rs= is generated from the pinned =seams.h= so crate users
+do not need libclang. Regenerate it after a seams-core C API change:
+
+#+begin_src bash
+python3 dseams-sys/gen_sys.py \
+  ../seams-core/include/seams.h dseams-sys/src/lib.rs
+#+end_src
+
+** Where does the release version live?
+
+The source is =[workspace.package].version= in =Cargo.toml=. Cogapp renders the
+copies listed in =ci/version/files.txt=. =cargo set-version --workspace= updates
+the source before cocogitto runs cogapp.

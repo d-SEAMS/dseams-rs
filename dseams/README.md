@@ -1,9 +1,10 @@
 # dseams
 
 Safe Rust calls into [d-SEAMS](https://dseams.info): CHILL and CHILL+
-ice labels, Steinhardt order parameters, primitive rings, cages, radial
-distribution functions, hydrogen bonds, topological fingerprints and
-planar brine fronts for molecular simulation frames.
+labels, Steinhardt order, neighbour lists, rings, cages, RDF and
+coordination, hydrogen bonds, density, fingerprints, contacts, domains,
+prisms, monolayer statistics, symmetry and planar brine fronts. Readers
+cover LAMMPS and XYZ, plus CON and chemfiles formats when available.
 
 The crates.io name `seams` belongs to an unrelated project, so the
 package is `dseams`. The library is still called `seams`.
@@ -16,7 +17,8 @@ cargo add dseams --features bundled
 
 The `bundled` feature compiles the d-SEAMS engine from source, so no
 separate install is needed. It needs Rust 1.85 or newer and a C++20
-compiler with OpenMP on x86_64, and it reads LAMMPS dumps and XYZ files.
+compiler with OpenMP on x86_64. It reads LAMMPS dumps and XYZ files and
+enables chemfiles and readcon-core when pkg-config finds them.
 To link a `libseams` you built instead, leave the feature off and set
 `SEAMS_LIBDIR`, or put a `seams.pc` file on `PKG_CONFIG_PATH`. The
 [link how-to](https://rust.dseams.info/user-guide/link.html) has the

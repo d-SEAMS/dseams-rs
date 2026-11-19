@@ -1,0 +1,65 @@
+#+TITLE: Testing
+#+OPTIONS: toc:nil todo:nil num:nil author:nil title:nil
+#+STARTUP: content
+
+* Testing
+
+** Shared libseams
+
+Build the pinned seams-core release and its oracle, then test this workspace
+against it:
+
+#+begin_src bash
+. ./seams-core.env
+git -C ../seams-core checkout "$SEAMS_CORE_REF"
+(cd ../seams-core && pixi run meson setup bbdir \
+  -Dwith_tests=true -Dwith_cli=false &&
+  pixi run ninja -C bbdir src/libseams.so bindings/binding_oracle)
+export SEAMS_LIBDIR="$PWD/../seams-core/bbdir/src"
+export SEAMS_INCLUDE="$PWD/../seams-core/include:$SEAMS_LIBDIR"
+export SEAMS_CPP_ORACLE="$PWD/../seams-core/bbdir/bindings/binding_oracle"
+export SEAMS_SOURCE_ROOT="$PWD/../seams-core"
+export OMP_NUM_THREADS=1
+cargo fmt --all -- --check
+cargo clippy --all-targets -- -D warnings
+cargo test -- --test-threads=1
+cargo test --examples -- --test-threads=1
+RUSTDOCFLAGS="-D warnings" cargo doc --no-deps
+#+end_src
+
+** Optional readers
+
+Configure seams-core with both canonical reader libraries, then require the
+feature queries to be true while reading the CON, PDB and GRO fixtures:
+
+#+begin_src bash
+(cd ../seams-core && pixi run meson setup bbreaders \
+  -Dwith_tests=false -Dwith_cli=false \
+  -Dwith_chemfiles=enabled -Duse_vendored_chemfiles=enabled \
+  -Dwith_readcon=enabled &&
+  pixi run ninja -C bbreaders src/libseams.so)
+export SEAMS_LIBDIR="$PWD/../seams-core/bbreaders/src"
+export SEAMS_INCLUDE="$PWD/../seams-core/include:$SEAMS_LIBDIR"
+DSEAMS_REQUIRE_READERS=1 cargo test --test readers -- --test-threads=1
+#+end_src
+
+** Bundled engine and packages
+
+#+begin_src bash
+python3 dseams-sys/vendor.py --source ../seams-core
+cargo clippy --features bundled --all-targets -- -D warnings
+cargo test --features bundled --test ice --examples -- --test-threads=1
+cargo +1.85.0 build --features bundled --all-targets
+cargo package --workspace --allow-dirty
+#+end_src
+
+** Documentation
+
+#+begin_src bash
+DOCS_RS=1 RUSTDOCFLAGS="-D warnings" cargo doc --no-deps --workspace
+python3 docs/check_rustdoc.py target/doc
+mdbook build docs
+cp -r target/doc docs/book/api
+cp docs/rustdoc-index.html docs/book/api/index.html
+python3 docs/check_book.py docs/book
+#+end_src
