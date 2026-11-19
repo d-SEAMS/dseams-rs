@@ -3,7 +3,7 @@ name = "dseams-sys"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
-description = "Raw FFI bindings to libseams, the d-SEAMS C API"
+description = "Raw d-SEAMS FFI: CHILL/+, Steinhardt, neighbours, rings, cages, RDF/CN, H-bonds, density, fingerprints, contacts, domains, prisms, monolayers, symmetry and brine; LAMMPS/XYZ, optional CON/chemfiles"
 authors.workspace = true
 # The crate code and d-SEAMS are MIT. vendor/eigen, used by the bundled
 # feature, is Eigen 3.4.0: MPL-2.0, with AlignedBox.h under BSD-3-Clause and
@@ -31,8 +31,8 @@ name = "seams_sys"
 
 [features]
 # Compile libseams from the seams-core sources in vendor/ (see vendor.py)
-# instead of linking an installed one. That build reads LAMMPS dumps and
-# XYZ, not .con or the chemfiles formats. SEAMS_LIBDIR still wins.
+# instead of linking an installed one. pkg-config enables chemfiles 0.10
+# and readcon-core 0.16 when they are available. SEAMS_LIBDIR still wins.
 bundled = ["dep:cc"]
 
 [dependencies]

@@ -6,11 +6,16 @@ resolver = "2"
 version = "2.14.1"
 edition = "2021"
 rust-version = "1.85"
-authors = ["Rohit Goswami <rgoswami@ieee.org>"]
+authors = [
+  "Rohit Goswami <rgoswami@ieee.org>",
+  "Ruhila Goswami (ORCID 0000-0002-5443-9356)",
+]
 homepage = "https://dseams.info"
 repository = "https://github.com/d-SEAMS/dseams-rs"
 
 [workspace.dependencies]
 # The version requirement is what crates.io records; the path only applies
 # inside this workspace.
+# [[[cog import dseams_version as v; cog.outl(f'dseams-sys = {{ version = "={v.VERSION}", path = "dseams-sys" }}')]]]
 dseams-sys = { version = "=2.14.1", path = "dseams-sys" }
+# [[[end]]]

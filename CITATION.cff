@@ -2,7 +2,9 @@ cff-version: 1.2.0
 message: "If you use this software, please cite the d-SEAMS article in preferred-citation."
 title: "dseams-rs: Rust bindings to the d-SEAMS C API"
 type: software
+# [[[cog import dseams_version as v; cog.outl(f'version: "{v.VERSION}"')]]]
 version: "2.14.1"
+# [[[end]]]
 date-released: "2026-11-17"
 license: MIT
 repository-code: "https://github.com/d-SEAMS/dseams-rs"
@@ -12,6 +14,9 @@ authors:
     given-names: Rohit
     email: rgoswami@ieee.org
     orcid: "https://orcid.org/0000-0002-2393-8056"
+  - family-names: Goswami
+    given-names: Ruhila
+    orcid: "https://orcid.org/0000-0002-5443-9356"
 keywords:
   - molecular dynamics
   - ice

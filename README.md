@@ -1,9 +1,10 @@
 # dseams-rs
 
-Rust interface to [d-SEAMS](https://dseams.info), the ice, clathrate and
-ring analysis engine for molecular simulation frames. It labels ice and
-clathrate with CHILL and CHILL+, computes Steinhardt order parameters,
-finds primitive rings and cages, and measures planar ice fronts in brine.
+Rust interface to [d-SEAMS](https://dseams.info). It exposes CHILL and
+CHILL+ labels, Steinhardt order, neighbour lists, rings, cages, RDF and
+coordination, hydrogen bonds, density, fingerprints, contacts, domains,
+prisms, monolayer statistics, symmetry and planar brine-front analysis.
+It reads LAMMPS and XYZ, plus CON and chemfiles formats when available.
 
 The C++ engine and its C API (`libseams`, header `seams.h`) live in
 [seams-core](https://github.com/d-SEAMS/seams-core). This repository holds
@@ -25,7 +26,8 @@ cargo add dseams --features bundled
 
 The `bundled` feature compiles the engine from source, so nothing else needs
 installing. It needs Rust 1.85 or newer and a C++20 compiler with OpenMP on
-x86_64, and it reads LAMMPS dumps and XYZ files.
+x86_64. It reads LAMMPS dumps and XYZ files, and uses installed chemfiles
+and readcon-core libraries when pkg-config finds them.
 
 ## A first result
 
@@ -60,8 +62,8 @@ Its build script uses the first of these that applies:
    header directories.
 2. **Feature `bundled`**: compile the C API and Eigen 3.4.0 from the
    engine sources that ship in the package, with the `cc` crate. It needs
-   x86_64 and C++20 with OpenMP, and it reads LAMMPS dumps and XYZ but not
-   `.con` files or chemfiles formats.
+   x86_64 and C++20 with OpenMP. Chemfiles 0.10 and readcon-core 0.16 are
+   enabled when pkg-config finds them.
 3. **pkg-config**: module `seams`, at least 2.14.0 and below 3.0.0.
 
 Programs linked to a shared library need its directory on

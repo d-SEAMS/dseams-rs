@@ -22,9 +22,11 @@ fn main() {
 }
 ```
 
+<!-- [[[cog import dseams_version as v; cog.outl(f'```text\nlibseams {v.VERSION}\n```')]]] -->
 ```text
 libseams 2.14.1
 ```
+<!-- [[[end]]] -->
 
 ## How libseams is found
 
@@ -40,8 +42,9 @@ first of these that applies:
 2. Feature `bundled`: compile the C API, the analyses behind it, and
    Eigen 3.4.0 with the `cc` crate, from sources in the package. This needs
    a C++20 compiler with OpenMP (GCC 11 or newer) on x86_64, because the
-   shell classifier uses AVX2. The bundled build reads LAMMPS dumps and XYZ,
-   not `.con` files or the chemfiles formats.
+   shell classifier uses AVX2. The bundled build always reads LAMMPS dumps
+   and XYZ. It also enables chemfiles 0.10 and readcon-core 0.16 when their
+   pkg-config modules are available.
 3. Otherwise the pkg-config module `seams`, at least 2.14.0 and below 3.0.0
    (set `PKG_CONFIG_PATH` to the directory that holds `seams.pc`). The
    installed library keeps every reader it was built with, including `.con`

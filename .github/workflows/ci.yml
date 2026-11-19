@@ -89,6 +89,54 @@ jobs:
           cargo package --workspace --locked --allow-dirty
           cargo publish --workspace --locked --dry-run --allow-dirty
 
+  readers:
+    name: Optional trajectory readers
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: dseams-rs
+      - name: Read the seams-core pin
+        id: pin
+        run: |
+          . dseams-rs/seams-core.env
+          echo "repo=${SEAMS_CORE_REPO#https://github.com/}" >> "$GITHUB_OUTPUT"
+          echo "ref=$SEAMS_CORE_REF" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ steps.pin.outputs.repo }}
+          ref: ${{ steps.pin.outputs.ref }}
+          path: seams-core
+      - uses: prefix-dev/setup-pixi@f00437f565399d418b0acc85936d12c1fb668347 # v0.10.1
+        with:
+          manifest-path: seams-core/pixi.toml
+          environments: default
+          cache-key: pixi-dseams-rs-readers-
+      - name: Install Rust
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup default stable
+      - name: Build libseams with both optional readers
+        working-directory: seams-core
+        run: |
+          pixi run meson setup bbdir \
+            -Dwith_tests=false \
+            -Dwith_cli=false \
+            -Dwith_chemfiles=enabled \
+            -Duse_vendored_chemfiles=enabled \
+            -Dwith_readcon=enabled
+          pixi run ninja -C bbdir src/libseams.so
+      - name: Read CON, PDB and GRO fixtures
+        working-directory: dseams-rs
+        env:
+          DSEAMS_REQUIRE_READERS: "1"
+          OMP_NUM_THREADS: "1"
+        run: |
+          core="$GITHUB_WORKSPACE/seams-core"
+          export SEAMS_LIBDIR="$core/bbdir/src"
+          export SEAMS_INCLUDE="$core/include:$core/bbdir/src"
+          cargo test --locked --test readers -- --test-threads=1
+
   bundled:
     name: Bundled libseams
     runs-on: ubuntu-24.04

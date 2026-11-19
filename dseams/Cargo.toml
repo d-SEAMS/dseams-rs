@@ -3,7 +3,7 @@ name = "dseams"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
-description = "Safe Rust wrapper for the d-SEAMS C API: ice, clathrate and ring analysis of molecular simulations"
+description = "Rust d-SEAMS API: CHILL/+, Steinhardt, neighbours, rings, cages, RDF/CN, H-bonds, density, fingerprints, contacts, domains, prisms, monolayers, symmetry and brine; LAMMPS/XYZ, optional CON/chemfiles"
 authors.workspace = true
 license = "MIT"
 homepage.workspace = true
@@ -16,6 +16,7 @@ include = [
   "/src/**",
   "/build.rs",
   "/tests/ice.rs",
+  "/tests/readers.rs",
   "/tests/cpp_match.rs",
   "/examples/**",
   "/tests/data/**",

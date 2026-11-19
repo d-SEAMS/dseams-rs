@@ -33,7 +33,8 @@ the tests compare against live in
 | `dseams/tests/` | `ice.rs` (every wrapper), `cpp_match.rs` (against the C++ oracle), `data/` fixtures |
 | `dseams/examples/` | `ice`, `minimal`, `ice_ih`, `lang_tasks`, `binding_overhead`; each has a test of its output |
 | `docs/` | mdBook (getting started, user guide, API reference, development) and the rustdoc coverage check |
-| `changelog.d/` | Unreleased changelog fragments |
+| `newsfragments/` | Unreleased changelog fragments |
+| `docs/orgmode/contributing/developer/release.org` | Tested release procedure |
 | `.github/workflows/ci.yml` | Builds seams-core at the pin and runs every check below |
 
 ## How dseams-sys finds libseams
@@ -111,15 +112,15 @@ analysis.
   commit; formatter-only changes go in their own `style:` commit.
 - ASCII punctuation in code, docs and commit messages. Comments say what the
   code does and why, in the present tense; history belongs in the commit.
-- Every user-visible change adds a fragment to `changelog.d/`, named
+- Every user-visible change adds a fragment to `newsfragments/`, named
   `<issue>.<type>.md` or `+<slug>.<type>.md`, where `<type>` is `added`,
-  `changed`, `deprecated`, `removed`, `fixed` or `security`. See
-  `changelog.d/README.md`.
+ `changed`, `deprecated`, `removed`, `fixed` or `security`. See
+ `newsfragments/README.md`.
 
 ## Releases
 
-The crate version is the seams-core version it binds, and both crates share
-it through the workspace.
+Follow `docs/orgmode/contributing/developer/release.org`. The crate version is
+the seams-core version it binds, and both crates share it through the workspace.
 
 1. seams-core tags the release (`vX.Y.Z` on d-SEAMS/seams-core).
 2. Here: set `SEAMS_CORE_REPO=https://github.com/d-SEAMS/seams-core` and

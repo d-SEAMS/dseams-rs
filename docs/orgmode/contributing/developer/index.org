@@ -1,0 +1,34 @@
+#+TITLE: Developer Guide
+#+OPTIONS: toc:nil todo:nil num:nil author:nil title:nil
+#+STARTUP: content
+
+* Developer Guide
+
+This section covers development of the =dseams= and =dseams-sys= crates.
+
+** Repository layout
+
+| Path | Purpose |
+|------+---------|
+| =dseams/= | Safe Rust API, examples and integration tests |
+| =dseams-sys/= | Generated C declarations and the libseams build |
+| =docs/= | mdBook user documentation and developer Org files |
+| =newsfragments/= | Towncrier input for the next release |
+| =ci/version/= | Cogapp version copies |
+
+** Common tasks
+
+| Command | Purpose |
+|---------+---------|
+| =cargo fmt --all -- --check= | Check Rust formatting |
+| =cargo clippy --all-targets -- -D warnings= | Lint every target |
+| =cargo test -- --test-threads=1= | Run the workspace tests and doctests |
+| =cargo test --examples -- --test-threads=1= | Run example assertions |
+| =RUSTDOCFLAGS="-D warnings" cargo doc --no-deps= | Build API documentation |
+| =mdbook build docs= | Build the user book |
+| =towncrier build --draft= | Preview release notes |
+| =cog check= | Check conventional commits |
+| =cog bump --auto --dry-run= | Preview a release bump |
+
+The complete test matrix is in [[file:testing.org][testing.org]]. The release
+procedure is in [[file:release.org][release.org]].

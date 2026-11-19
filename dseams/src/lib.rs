@@ -71,8 +71,10 @@
 //! directory named by `SEAMS_LIBDIR` when that variable is set. Otherwise it
 //! uses the `bundled` feature, which compiles the engine from source and
 //! reads LAMMPS dumps and XYZ files, or an installed library found through
-//! pkg-config. `cargo add dseams --features bundled` is the shortest way to
-//! a working build.
+//! pkg-config. A bundled build also enables chemfiles and readcon-core when
+//! pkg-config finds them. [`has_chemfiles`] and [`has_readcon`] report the
+//! linked engine's readers. `cargo add dseams --features bundled` is the
+//! shortest way to a working build.
 //!
 //! The raw C declarations are re-exported as [`ffi`].
 //!
@@ -531,6 +533,27 @@ pub fn version() -> String {
 #[must_use]
 pub fn abi() -> i32 {
     unsafe { ffi::seams_abi() }
+}
+
+/// Whether the linked engine reads formats provided by chemfiles, including
+/// PDB and GRO.
+///
+/// ```
+/// let _available = seams::has_chemfiles();
+/// ```
+#[must_use]
+pub fn has_chemfiles() -> bool {
+    env!("DSEAMS_HAS_CHEMFILES") == "1"
+}
+
+/// Whether the linked engine reads `.con` files through readcon-core.
+///
+/// ```
+/// let _available = seams::has_readcon();
+/// ```
+#[must_use]
+pub fn has_readcon() -> bool {
+    env!("DSEAMS_HAS_READCON") == "1"
 }
 
 /// Set the OpenMP width for the next call. Zero restores the library default.

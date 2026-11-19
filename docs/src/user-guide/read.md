@@ -47,9 +47,12 @@ Pass one type per atom, and an empty slice for the ids you do not have.
 
 `read` takes a path, a **1-based** frame number and a type filter. A
 negative filter keeps every atom, and a positive one keeps only atoms of
-that type. The format is picked from the file. The bundled engine reads
-LAMMPS dumps and XYZ files. A `libseams` built with more readers also reads
-`.con` files and the chemfiles formats. See [Link libseams](link.md).
+that type. The format is picked from the file. Every build reads LAMMPS
+dumps and XYZ files. The bundled build also enables readcon-core and
+chemfiles when pkg-config finds them; an external `libseams` keeps the
+readers with which it was built. `has_readcon()` reports `.con` support,
+and `has_chemfiles()` reports formats such as PDB and GRO. See
+[Link libseams](link.md).
 
 `nframes` counts the frames in a file, which tells you how far a loop may
 go:

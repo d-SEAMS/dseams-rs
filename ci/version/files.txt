@@ -1,0 +1,9 @@
+# Version copies generated from [workspace.package] in Cargo.toml.
+# Regenerate: python3 -m cogapp -r -I ci/version $(awk 'NF && $1 !~ /^#/' ci/version/files.txt)
+# Check:      python3 -m cogapp --check -I ci/version $(awk 'NF && $1 !~ /^#/' ci/version/files.txt)
+Cargo.toml
+CITATION.cff
+seams-core.env
+towncrier.toml
+dseams-sys/README.md
+docs/src/user-guide/link.md
