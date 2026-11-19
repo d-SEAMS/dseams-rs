@@ -1,52 +1,72 @@
 # dseams
 
-`dseams` is the safe Rust crate for [d-SEAMS](https://dseams.info), the ice,
-clathrate and ring engine for molecular simulation frames. The engine, the
-C API (`libseams`, header `seams.h`) and the command-line tool live in
-[seams-core](https://github.com/d-SEAMS/seams-core). This book documents the
-two crates in this repository:
+`dseams` is the Rust interface to [d-SEAMS](https://dseams.info), a toolkit
+that classifies the molecules of a simulation frame. It labels ice and
+clathrate with CHILL and CHILL+, computes Steinhardt order parameters,
+finds primitive rings and cages, and measures planar ice fronts in brine.
+The engine itself is written in C++ and lives in
+[seams-core](https://github.com/d-SEAMS/seams-core). It is reached through
+its C API, `libseams`.
 
-| Crate | Library | Role |
+Two crates make up the Rust side:
+
+| Crate | Library name | Use it for |
 | --- | --- | --- |
-| `dseams-sys` | `seams_sys` | Raw declarations generated from `seams.h` |
-| `dseams` | `seams` | Owned handles, options structs, iterators, `Result` errors |
+| `dseams` | `seams` | Analysing frames. Owned handles, options structs, iterators and `Result` errors. |
+| `dseams-sys` | `seams_sys` | The raw C declarations. Most programs never name it. |
 
 The crates.io name `seams` belongs to an unrelated project, so the packages
-are `dseams-sys` and `dseams`. Code still says `use seams::System`.
+are `dseams` and `dseams-sys`. Code still says `use seams::System`.
+
+## A first result
+
+Add the crate with a bundled copy of the engine, then classify a cubic
+ice cell:
+
+```bash
+cargo add dseams --features bundled
+```
 
 ```rust
+use seams::{ChillOptions, Label, System};
+
 fn main() -> Result<(), seams::Error> {
     let (xyz, edge) = seams::diamond8();
-    seams::set_num_threads(1)?;
-    let mut system = seams::System::new()?;
-    system.set_ortho(&xyz, edge, edge, edge)?;
-    let ice = system.chill_plus(&seams::ChillOptions::default())?;
-    assert_eq!(ice.counts[seams::Label::Cubic as usize], 8);
+    let mut frame = System::new()?;
+    frame.set_ortho(&xyz, edge, edge, edge)?;
+    let ice = frame.chill_plus(&ChillOptions::default())?;
+    println!("cubic atoms: {}", ice.counts[Label::Cubic as usize]);
     Ok(())
 }
 ```
 
-Coordinates and cutoffs are angstroms. A cell is nine LAMMPS numbers:
-origin, edge lengths, then the tilts `xy`, `xz`, `yz`.
+```text
+cubic atoms: 8
+```
 
-## In this book
+Coordinates and cutoffs are in angstroms. A cell is nine numbers in the
+LAMMPS order: the origin, the three edge lengths, then the tilts `xy`,
+`xz` and `yz`.
 
-The layout follows the same four-part shape as the NumPy documentation.
+## Where to go next
 
-- [Getting started](getting-started.md) installs the crate, links `libseams`, and classifies the eight-atom cubic cell.
-- The [user guide](user-guide/index.md) is the tutorials and the how-to pages.
-- The [API reference](api.md) is the rustdoc generated from the crates.
-- [Development](development.md) is how to build, test, and regenerate the declarations.
+| If you want to | Read |
+| --- | --- |
+| Install the crate and run your own first program | [Getting started](getting-started.md) |
+| Learn the calls by working through real frames | [The tutorials](user-guide/index.md), starting with [ice Ih](user-guide/ice-ih.md) |
+| Link an existing `libseams` instead of the bundled copy | [Link libseams](user-guide/link.md) |
+| Load a trajectory from disk | [Read a trajectory](user-guide/read.md) |
+| Look up a type or a method | [API reference](api.md) |
+| Build the crates from a checkout and run their tests | [Building from source](development.md) |
 
-The engine book, including the C API and the science tutorials, is
-[docs.dseams.info](https://docs.dseams.info). Its Rust page is
-[the stable Rust guide](https://docs.dseams.info/stable/rust.html), and
-the C header reference is
-[the stable C API](https://docs.dseams.info/stable/c.html).
+The engine book, [docs.dseams.info](https://docs.dseams.info), covers the
+command-line tool, the C API and the science behind each analysis. Its
+[Rust page](https://docs.dseams.info/stable/rust.html) points back here.
 
-The recording runs the ice Ih census from Rust:
+## Citing d-SEAMS
 
-<iframe title="Rust on ice Ih" src="https://odysee.com/$/embed/dseams-rust:687055b1ac9dfe7596006cb4f2fa466de9492ca5" width="960" height="540" allowfullscreen></iframe>
-
-Cite the 2020 paper, [DOI 10.1021/acs.jcim.0c00031](https://doi.org/10.1021/acs.jcim.0c00031),
-as recorded in `CITATION.cff`.
+If you use d-SEAMS in published work, cite the 2020 article: R. Goswami,
+A. Goswami and J. K. Singh, "d-SEAMS: Deferred Structural Elucidation
+Analysis for Molecular Simulations", *Journal of Chemical Information and
+Modeling* 60 (4), 2169-2177,
+[doi:10.1021/acs.jcim.0c00031](https://doi.org/10.1021/acs.jcim.0c00031).

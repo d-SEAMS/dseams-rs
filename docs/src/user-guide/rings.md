@@ -1,51 +1,117 @@
 # Tutorial: rings
 
-Count primitive rings on the ice Ih cell. The recording then shows the
-same count on the mixed frame and on ice Ih.
+A primitive ring is a closed loop of bonded atoms that cannot be split into
+two smaller loops. Ring statistics are a direct fingerprint of a structure:
+ice Ih and cubic ice have only six-membered rings, while a clathrate adds
+five-membered rings. This tutorial counts them on ice Ih and on the sI
+clathrate framework, then reads the atoms of individual rings.
 
 <iframe title="Primitive rings on the mixed frame, then on ice Ih" src="https://odysee.com/$/embed/dseams-rings:cfb3b6687dd81847ecb005782df8cf5143617be5" width="960" height="540" allowfullscreen></iframe>
 
-Primitive rings on the mixed frame, then on ice Ih.
+You need the two dumps from the [user guide](index.md) page.
 
-`RingOptions::default` is a 3.5 angstrom cutoff, the cutoff graph, and
-`max_size` 6 (the largest ring size the search keeps, from 3 through 12).
-`Rings::histogram(6)` returns seven bins, index equal to ring size.
-`Rings::fraction` is the fraction of atoms that sit on a ring of one size.
-`six_ring_fraction` is that pair for size 6: the histogram entry, then
-the fraction.
+## The histogram
 
-On `dseams/tests/data/ice1h.lammpstrj` the size-6 bin is 256, which is the
-`rings 256` locked by `cargo run --example ice_ih` and the `rings` field
-of the [shared census](ice-ih.md):
-
-```text
-pairs 512 rings 0 0 0 0 0 0 256 chill 0 128 0 0 0 0 0 0 0
-```
+`RingOptions::default` uses a 3.5 angstrom cutoff, the cutoff graph and a
+`max_size` of 6, the largest ring the search keeps. `max_size` may be set
+from 3 to 12. `Rings::histogram(n)` returns `n + 1` bins indexed by ring
+size, so `histogram(6)` has seven entries and bin 6 counts six-rings.
 
 ```rust
+use seams::{RingOptions, System};
+
 fn main() -> Result<(), seams::Error> {
-    let mut system = seams::System::new()?;
-    system.read("dseams/tests/data/ice1h.lammpstrj", 1, 1)?;
-    let rings = system.rings(&seams::RingOptions::default())?;
-    let hist = rings.histogram(6)?;
-    let fraction = rings.fraction(6)?;
-    assert_eq!(hist[6], 256);
-    assert!(fraction.is_finite());
-    let first = rings.vertices(0)?;
-    assert!(!first.is_empty());
-    for ring in rings.iter().take(1) {
-        let _vertices = ring?;
+    for path in ["ice1h.lammpstrj", "genice_sI.lammpstrj"] {
+        let mut frame = System::new()?;
+        frame.read(path, 1, -1)?;
+        let rings = frame.rings(&RingOptions::default())?;
+        let histogram = rings.histogram(6)?;
+        println!(
+            "{path}: {} rings, five {} six {}",
+            rings.size(),
+            histogram[5],
+            histogram[6]
+        );
     }
     Ok(())
 }
 ```
 
-`vertices(index)` is the atom indices of one ring. `iter` yields each
-ring's vertices as a `Result`. `size` is the number of rings.
-`ring_symmetry_name` turns a `RingSymmetry` code into its short name
-(`"pentagon"`, `"hexagon"`, and the cage-face names).
+```text
+ice1h.lammpstrj: 256 rings, five 0 six 256
+genice_sI.lammpstrj: 102 rings, five 48 six 54
+```
 
-`Drop` frees the ring set.
+Ice Ih has 256 rings and all of them are hexagons. The clathrate framework
+has 48 pentagons and 54 hexagons, which is its cage faces counted once
+each.
 
-The engine tutorial, including the mixed TIP4P frame this crate does not
-ship, is [Primitive rings](https://docs.dseams.info/tutorials/rings.html).
+`Rings::size` is the number of rings kept, and `Rings::fraction(n)` is the
+fraction of atoms that sit on at least one ring of size `n`.
+`System::six_ring_fraction` is a shortcut for the six-ring count and that
+fraction in one call.
+
+## The atoms of a ring
+
+`Rings::vertices(i)` returns the atom indices of ring `i`. `Rings::iter`
+walks every ring and yields each as a `Result<Vec<i32>, Error>`.
+
+```rust
+use seams::{RingOptions, System};
+
+fn main() -> Result<(), seams::Error> {
+    let mut frame = System::new()?;
+    frame.read("ice1h.lammpstrj", 1, -1)?;
+    let rings = frame.rings(&RingOptions::default())?;
+
+    println!("ring 0 atoms {:?}", rings.vertices(0)?);
+    println!("fraction of atoms on a six-ring {}", rings.fraction(6)?);
+
+    let mut sizes = std::collections::BTreeMap::new();
+    for ring in rings.iter() {
+        *sizes.entry(ring?.len()).or_insert(0) += 1;
+    }
+    println!("{sizes:?}");
+    Ok(())
+}
+```
+
+```text
+ring 0 atoms [0, 4, 7, 3, 5, 9]
+fraction of atoms on a six-ring 1
+{6: 256}
+```
+
+Every atom of the crystal sits on six-rings, so the fraction is 1.
+
+## The six-ring shortcut
+
+Counting hexagons is common enough to have its own call.
+`System::six_ring_fraction` takes a cutoff and returns the number of
+six-rings with the fraction of atoms on them, without building a `Rings`
+handle:
+
+```rust
+use seams::System;
+
+fn main() -> Result<(), seams::Error> {
+    let mut frame = System::new()?;
+    frame.read("genice_sI.lammpstrj", 1, -1)?;
+    let (six_rings, fraction) = frame.six_ring_fraction(3.5)?;
+    println!(
+        "{six_rings} six-rings on {:.0}% of the atoms",
+        100.0 * fraction
+    );
+    Ok(())
+}
+```
+
+```text
+54 six-rings on 100% of the atoms
+```
+
+In the clathrate framework every atom still sits on at least one
+six-ring, even though 48 pentagons are present too.
+
+For the same count on a mixed TIP4P frame, see the engine tutorial
+[Primitive rings](https://docs.dseams.info/tutorials/rings.html).

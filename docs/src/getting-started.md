@@ -1,90 +1,90 @@
 # Getting started
 
-This page installs `dseams` 2.14.1, points the build at `libseams`, and
-classifies one cubic cell. The recording is the Rust front on ice Ih.
+This page takes you from an empty directory to a classified ice cell.
 
-<iframe title="Rust on ice Ih" src="https://odysee.com/$/embed/dseams-rust:687055b1ac9dfe7596006cb4f2fa466de9492ca5" width="960" height="540" allowfullscreen></iframe>
+## What you need
 
-Rust on ice Ih.
+- Rust 1.85 or newer.
+- A C++20 compiler with OpenMP, such as GCC 11 or newer, on x86_64. The
+  `bundled` feature compiles the engine from source, so no separate
+  `libseams` install is needed.
 
-## Add the crate
+The `bundled` copy reads LAMMPS dumps and XYZ files. If you already have a
+`libseams` built with more readers (`.con` files or the chemfiles formats),
+link it instead. The [link how-to](user-guide/link.md) shows both routes.
 
-Rust 1.85 or newer builds the crates.
+## Create a project
 
-```toml
-[dependencies]
-dseams = "2.14.1"
+```bash
+cargo new first-frame
+cd first-frame
+cargo add dseams --features bundled
 ```
 
-`cargo add dseams` writes the same line. The library name is `seams`.
+The first build is the slow one, because `cargo` compiles `libseams` and
+its Eigen headers. Later builds reuse that work. The library is named `seams`, so the
+code below says `seams::System` even though the package is `dseams`.
 
-## Link libseams
+## Classify a cell
 
-`dseams-sys` does not run bindgen. The declarations are already in the
-crate. The build script takes the first match:
-
-1. `SEAMS_LIBDIR` (or `SEAMS_LIB_DIR`): the directory that holds the shared
-   `libseams`. A meson build uses `bbdir/src`. An install prefix uses
-   `lib`. Set `SEAMS_INCLUDE` to the header directories when
-   `seams.h` is not in the sibling `include` directory. For the meson tree
-   that this repository's CI builds, that is the seams-core `include`
-   directory plus `bbdir/src`.
-2. Feature `bundled`: compile the C API and Eigen 3.4.0 with the `cc`
-   crate. This needs x86_64 and a C++20 compiler with OpenMP. The shell
-   classifier uses AVX2. The bundled copy reads LAMMPS dumps and XYZ.
-   `.con` files and the chemfiles formats need a `libseams` that was
-   built with those readers. Fill `dseams-sys/vendor/` with
-   `python3 dseams-sys/vendor.py`, or set `SEAMS_SOURCE_DIR` to a
-   seams-core checkout at the commit in `seams-core.env`.
-   `SEAMS_LIBDIR` still wins when it is set.
-3. pkg-config module `seams`, at least 2.14.0 and below 3.0.0. A
-   `seams_version.h` from another major release, or from an older minor
-   release, stops the build.
-
-The [link how-to](user-guide/link.md) has the commands for each path.
-
-Tests and examples in this workspace receive an rpath to `SEAMS_LIBDIR`.
-A binary in another crate needs that directory on `LD_LIBRARY_PATH` at
-run time. The bundled build links a static library, so it has no rpath.
-
-## Classify the eight-atom cell
-
-`diamond8` returns the eight-atom cubic diamond and its lattice constant,
-`2.75 * 4 / sqrt(3)` angstroms. The nearest-neighbour distance is 2.75
-angstroms. `ChillOptions::default` uses a 3.5 angstrom cutoff, the cutoff
-graph, and the published CHILL+ table. Every atom is cubic:
+Replace `src/main.rs` with this program. `diamond8` returns the eight atoms
+of one cubic diamond cell and its edge length, which is the oxygen lattice
+of cubic ice. `System` holds one frame,
+`set_ortho` stores the atoms in a box with zero origin and no tilt, and
+`chill_plus` labels each atom:
 
 ```rust
+use seams::{ChillOptions, Label, System};
+
 fn main() -> Result<(), seams::Error> {
     let (xyz, edge) = seams::diamond8();
-    seams::set_num_threads(1)?;
-    let mut system = seams::System::new()?;
-    system.set_ortho(&xyz, edge, edge, edge)?;
-    let ice = system.chill_plus(&seams::ChillOptions::default())?;
-    assert_eq!(ice.labels.len(), 8);
-    assert_eq!(ice.counts[seams::Label::Cubic as usize], 8);
+    let mut frame = System::new()?;
+    frame.set_ortho(&xyz, edge, edge, edge)?;
+    let ice = frame.chill_plus(&ChillOptions::default())?;
+    for label in [Label::Cubic, Label::Hexagonal, Label::Water] {
+        println!(
+            "{:<10} {}",
+            seams::label_name(label),
+            ice.counts[label as usize]
+        );
+    }
     Ok(())
 }
 ```
 
-`set_num_threads` is process-global. `1` makes the following call
-single-threaded. `ice.counts[label as usize]` is the population of that
-label. The nine labels, in count order, are `Cubic`, `Hexagonal`,
-`Water`, `Interfacial`, `Clathrate`, `Interclathrate`, `Unclassified`,
-`Recubic`, and `Rehex`.
-
-From a checkout of this repository, with `SEAMS_LIBDIR` set:
-
-```bash
-cargo run --example ice_ih
-cargo test --doc -- --test-threads=1
-```
-
-`ice_ih` reads the ice Ih dump shipped in the crate and prints
+Run it with `cargo run`:
 
 ```text
-rust ice nop 128 q6 0.625855 hexagonal 128 rings 256
+cubic      8
+hexagonal  0
+water      0
 ```
 
-That line is locked by the example's test. The [ice Ih tutorial](user-guide/ice-ih.md) walks through it.
-The engine book is [docs.dseams.info](https://docs.dseams.info).
+Every atom is cubic. `ChillOptions::default` uses a 3.5 angstrom cutoff, the
+cutoff neighbour graph and the published CHILL+ thresholds.
+
+## How the results are shaped
+
+- `ice.labels` holds one label code per atom, and `ice.counts` holds the
+  population of each label. `counts[label as usize]` is the number of atoms
+  with that label.
+- The nine labels, in count order, are `Cubic`, `Hexagonal`, `Water`,
+  `Interfacial`, `Clathrate`, `Interclathrate`, `Unclassified`, `Recubic`
+  and `Rehex`.
+- Analyses that take several settings take an options struct. Start from
+  `Default::default()` and change only the fields you need.
+- Every fallible call returns `Result<_, seams::Error>`. The
+  [error how-to](user-guide/errors.md) lists what can go wrong.
+
+## Watch it on ice Ih
+
+The recording runs the same calls on a real ice Ih frame and prints the
+census that the [ice Ih tutorial](user-guide/ice-ih.md) builds step by step.
+
+<iframe title="Rust on ice Ih" src="https://odysee.com/$/embed/dseams-rust:687055b1ac9dfe7596006cb4f2fa466de9492ca5" width="960" height="540" allowfullscreen></iframe>
+
+## Next
+
+Continue with the [ice Ih tutorial](user-guide/ice-ih.md). It reads a
+128-molecule trajectory frame from disk and reports neighbours, rings and
+CHILL+ labels.
