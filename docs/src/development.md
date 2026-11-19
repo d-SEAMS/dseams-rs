@@ -2,8 +2,16 @@
 
 Use this page when you want the crates from a checkout, to read the tests,
 run the examples or build the documentation yourself. Programs that only
-depend on `dseams` need none of it, because `cargo add dseams` fetches
-everything.
+depend on `dseams` need no checkout, though `cargo add dseams` alone has
+no default engine (`bundled` is opt-in in `Cargo.toml`): either run
+`cargo add dseams --features bundled` to compile the `seams-core` and
+Eigen 3.4.0 sources shipped in the crate package (requires `x86_64` and
+a C++20 compiler with OpenMP), or run `cargo add dseams` against an
+installed `libseams` (2.14.0 or newer within major 2), which `dseams-sys`
+finds via `SEAMS_LIBDIR` (or `SEAMS_LIB_DIR`, with optional
+`SEAMS_INCLUDE`) or the `seams` `pkg-config` module (for example on
+`PKG_CONFIG_PATH`). See [Link libseams](user-guide/link.md) for both
+routes.
 
 The repository holds the two crates, `dseams-sys` and `dseams`, plus this
 book and the examples. The engine, the C API and the command-line tool live
