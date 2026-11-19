@@ -641,7 +641,7 @@ pub struct SteinhardtOptions {
     pub species: i32,
     /// Degree. 3, 4, 6, 8, or 12.
     pub order: i32,
-    /// Also return the Lechner-Dellago mean.
+    /// Also return the Lechner-Dellago averaged q_l (q_l-bar).
     pub average: bool,
 }
 
@@ -672,7 +672,7 @@ pub struct OrderOptions {
     pub order: i32,
     /// Cutoff or mutual.
     pub graph: Graph,
-    /// Also return the neighbour mean.
+    /// Also return the Lechner-Dellago averaged q_l (q_l-bar).
     pub average: bool,
 }
 
@@ -1117,7 +1117,7 @@ pub struct Classification {
 pub struct Steinhardt {
     /// One local q_l per atom. Dimensionless.
     pub local: Vec<f64>,
-    /// Neighbour mean of q_lm. `None` when the average was not requested.
+    /// Lechner-Dellago averaged q_l (formed from the neighbour-averaged q_lm). `None` when the average was not requested.
     pub average: Option<Vec<f64>>,
 }
 

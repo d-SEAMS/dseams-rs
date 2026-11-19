@@ -49,7 +49,7 @@ runs on it.
 | Item | Role |
 | --- | --- |
 | `System::q4q6` | Local q4 and q6 on the cutoff shell, as [`Q4Q6`](api/seams/struct.Q4Q6.html). |
-| `System::steinhardt` | Local q_l, and the Lechner-Dellago neighbour mean when `average` is set. |
+| `System::steinhardt` | Local q_l, and the Lechner-Dellago averaged q_l (q_l-bar) when `average` is set. |
 | `System::ql` | The same on a named neighbour graph. See [`OrderOptions`](api/seams/struct.OrderOptions.html). |
 | `System::q6bar` | q6-bar, its mean and median, and the number of atoms above `ice_cut`. See [`Q6Bar`](api/seams/struct.Q6Bar.html). |
 
