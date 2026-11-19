@@ -1,11 +1,12 @@
 # Tutorial: nucleation
 
 To follow a crystal nucleus you need a per-atom measure of crystallinity
-and a threshold. d-SEAMS offers two. The Lechner-Dellago q6-bar averages
-the Steinhardt q6 over each atom and its neighbours, and an atom counts as
-ice when its q6-bar is above `ice_cut`. CHILL+ gives a label instead of a
-number. This tutorial grows a crystalline slab one layer at a time and
-watches both counts.
+and a threshold. d-SEAMS offers two. The Lechner-Dellago `q6-bar`
+averages the complex spherical-harmonic components `q_6m` over each atom
+and its neighbours and forms `q6` from those averaged components; an atom
+counts as ice when its `q6-bar` is strictly above `ice_cut`. CHILL+
+gives a label instead of a number. This tutorial grows a crystalline slab
+one layer at a time and watches both counts.
 
 <iframe title="Nucleation q6-bar" src="https://odysee.com/$/embed/dseams-nucleation:965e5772f700e5b1d91f1b069557eb9e87f1c60b" width="960" height="540" allowfullscreen></iframe>
 
@@ -113,11 +114,45 @@ atom) and an `ice_cut` of 0.36. Raising or lowering the cut changes
 
 ## The underlying order parameters
 
-`steinhardt` returns the local q_l, and with `average: true` also the
-neighbour mean that q6-bar is built from. `order` is 6 by default and may be
-3, 4, 6, 8 or 12. `ql` takes the same parameters on a named neighbour graph
-through `OrderOptions.graph`. `q4q6` is a shortcut for the two most common
-orders.
+`steinhardt` (calling `seams_steinhardt`, which delegates to `seams_ql` and
+`chill::steinhardtQlCutoff` in `libseams`) computes the local Steinhardt
+`q_l` on the cutoff neighbour shell and, when `average: true`, also
+returns the Lechner-Dellago `q_l-bar` in `result.average`. `order` is 6
+by default and may be 3, 4, 6, 8 or 12. `ql` takes the same parameters on
+a named neighbour graph (`Graph::Cutoff` or `Graph::Mutual`) through
+`OrderOptions.graph`. `q4q6` is a shortcut for local `q4` and `q6`.
+
+For atom `i` with non-self neighbour set `N(i)` (`j in N(i)`, `j != i`,
+`0 < |r_ij| <= cutoff` for the cutoff shell), the code first computes the
+local complex bond-order components `q_lm(i)` and local `q_l(i)` (in
+`cutoffSolid` for `l` in `{3, 4, 6}`, or `qlmOneAtomDr` and `qlOneAtom`
+in general):
+
+<div class="math">
+$$
+q_{lm}(i) = \frac{1}{|N(i)|} \sum_{j \in N(i)} Y_{lm}(\hat{\mathbf{r}}_{ij}), \qquad
+q_l(i) = \sqrt{\frac{4\pi}{2l + 1} \sum_{m=-l}^{l} \left|q_{lm}(i)\right|^2}
+$$
+</div>
+
+When `average: true` (or inside `System::q6bar`, which calls
+`seams_q6bar` -> `chill::steinhardtQlCutoff` at `l = 6` with `average = true`),
+the second pass averages the complex `q_lm` components over atom `i`
+itself together with its neighbours, i.e., over the `1 + |N(i)|` atoms in
+`{i} U N(i)`, and then forms `q_l-bar(i)` from those averaged components
+with the `4*pi / (2*l + 1)` normalization (`4*pi / 13` for `l = 6`):
+
+<div class="math">
+$$
+\bar{q}_{lm}(i) = \frac{1}{1 + |N(i)|} \left( q_{lm}(i) + \sum_{j \in N(i)} q_{lm}(j) \right), \qquad
+\bar{q}_l(i) = \sqrt{\frac{4\pi}{2l + 1} \sum_{m=-l}^{l} \left|\bar{q}_{lm}(i)\right|^2}
+$$
+</div>
+
+When `|N(i)| = 0`, `q_lm(i) = 0`, `q_l(i) = 0`, and `q_l-bar(i) = q_l(i)`.
+Note that `steinhardt` with `order: 6` and `average: true` produces the
+exact same `q6-bar` array in `result.average` that `q6bar` returns in
+`values` and summarises into `mean`, `median` and `n_ice`.
 
 ```rust
 use seams::{SteinhardtOptions, System};
@@ -144,11 +179,14 @@ local q6 0.626
 averaged q6 0.562
 ```
 
-The averaged mean is the smaller one here. Averaging each atom's q6 over
-its neighbour shell smooths out atom-to-atom noise, which is why Lechner
-and Dellago introduced it: the averaged value separates ice from liquid
-more cleanly than q6 alone. Cuts such as the default `ice_cut` of 0.36 are
-set against the averaged values.
+The averaged mean is the smaller one here. Because `q6-bar` averages the
+complex `q_6m` components over `{i} U N(i)` rather than taking a mean of
+scalar `q6`, opposing bond orientations across neighbouring shells
+partially cancel before the square-modulus sum is taken. That cancellation
+lowers `q6-bar` slightly even in proton-disordered ice Ih and much more
+strongly in disordered liquid water, which is why Lechner-Dellago
+`q6-bar` separates ice from liquid more cleanly than local `q6` alone.
+Cuts such as the default `ice_cut` of 0.36 are set against `q6-bar`.
 
 The 148-frame trajectory and the per-frame cluster sizes are in the engine
 tutorial [Nucleation](https://docs.dseams.info/tutorials/nucleation.html).
