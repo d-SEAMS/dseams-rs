@@ -1,3 +1,4 @@
 /target/
+__pycache__/
 # Written by dseams-sys/vendor.py for the bundled build and cargo package.
 /dseams-sys/vendor/
