@@ -22,6 +22,7 @@ src/franzblau.cpp
 src/generic.cpp
 src/ira_sofi.cpp
 src/local_symmetry.cpp
+src/lc_threads.cpp
 src/mol_sys.cpp
 src/neighbours.cpp
 src/order_parameter.cpp

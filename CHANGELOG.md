@@ -11,6 +11,12 @@ by [towncrier](https://towncrier.readthedocs.io/).
 
 <!-- towncrier release notes start -->
 
+## [2.14.1] - 2026-11-18
+
+### Changed
+
+- `dseams` and `dseams-sys` now bind seams-core v2.14.1, including the sources generated for the optional bundled build.
+
 ## [2.14.0] - 2026-11-17
 
 ### Added

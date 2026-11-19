@@ -38,10 +38,10 @@ fraction above one half.
 cargo run --example ice
 ```
 
-Against libseams 2.14.0 the example prints:
+Against libseams 2.14.1 the example prints:
 
 ```text
-dseams 2.14.0 cubic 64 of 64
+dseams 2.14.1 cubic 64 of 64
 ```
 
 ## sI clathrate
@@ -56,10 +56,10 @@ path given on the command line), calls `set_ortho`, and checks:
 - `six_ring_fraction(3.5)` reports 54 primitive six-rings
 - the mean of `q4q6(3.5).q6` is above 0.5
 
-Against libseams 2.14.0 the example prints:
+Against libseams 2.14.1 the example prints:
 
 ```text
-rust example ok 2.14.0 q6 0.595
+rust example ok 2.14.1 q6 0.595
 ```
 
 The example parses the dump and calls `set_ortho`. `System::read` of the

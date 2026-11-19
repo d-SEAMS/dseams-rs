@@ -15,7 +15,7 @@ The crates.io name `seams` belongs to an unrelated project, hence the `d`.
 
 ```toml
 [dependencies]
-dseams = "2.14.0"
+dseams = "2.14.1"
 ```
 
 ## Linking libseams
@@ -33,7 +33,7 @@ build script takes the first of:
 3. **pkg-config**: module `seams`, at least 2.14.0 and below 3.0.0.
 
 The crate version tracks the seams-core release. `seams-core.env` names the
-seams-core tag that CI builds and that `vendor.py` vendors: `v2.14.0` of
+seams-core tag that CI builds and that `vendor.py` vendors: `v2.14.1` of
 [d-SEAMS/seams-core](https://github.com/d-SEAMS/seams-core).
 
 ## Building and testing against a seams-core build
