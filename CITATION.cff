@@ -2,7 +2,7 @@ cff-version: 1.2.0
 message: "If you use this software, please cite the d-SEAMS article in preferred-citation."
 title: "dseams-rs: Rust bindings to the d-SEAMS C API"
 type: software
-version: "2.14.0"
+version: "2.14.1"
 date-released: "2026-11-17"
 license: MIT
 repository-code: "https://github.com/d-SEAMS/dseams-rs"

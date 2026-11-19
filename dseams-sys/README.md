@@ -9,7 +9,7 @@ packages are `dseams-sys` and `dseams`. The library names are unchanged:
 
 ```toml
 [dependencies]
-dseams-sys = "2.14.0"
+dseams-sys = "2.14.1"
 ```
 
 ```rust
