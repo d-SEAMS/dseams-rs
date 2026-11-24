@@ -47,14 +47,14 @@ checksum = "a31eee39dddec8330830986fcd7625edb5a24ec90ea038215273bbc3adb08ac6"
 
 [[package]]
 name = "dseams"
-version = "2.14.1"
+version = "2.14.2"
 dependencies = [
  "dseams-sys",
 ]
 
 [[package]]
 name = "dseams-sys"
-version = "2.14.1"
+version = "2.14.2"
 dependencies = [
  "cc",
  "linkcell",

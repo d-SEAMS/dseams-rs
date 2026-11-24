@@ -37,12 +37,12 @@ with no library path to set.
 
 Build and install the engine from its repository. This uses the tag
 <!-- [[[cog import dseams_version as v; cog.outl(f'`v{v.VERSION}`, the release that `dseams` {v.VERSION} is built against:')]]] -->
-`v2.14.1`, the release that `dseams` 2.14.1 is built against:
+`v2.14.2`, the release that `dseams` 2.14.2 is built against:
 <!-- [[[end]]] -->
 
 <!-- [[[cog import dseams_version as v; cog.outl(f'```bash\ngit clone --branch v{v.VERSION} https://github.com/d-SEAMS/seams-core\n```')]]] -->
 ```bash
-git clone --branch v2.14.1 https://github.com/d-SEAMS/seams-core
+git clone --branch v2.14.2 https://github.com/d-SEAMS/seams-core
 ```
 <!-- [[[end]]] -->
 
@@ -106,7 +106,7 @@ fn main() {
 
 <!-- [[[cog import dseams_version as v; cog.outl(f'```text\nlibseams {v.VERSION} (ABI 1)\n```')]]] -->
 ```text
-libseams 2.14.1 (ABI 1)
+libseams 2.14.2 (ABI 1)
 ```
 <!-- [[[end]]] -->
 

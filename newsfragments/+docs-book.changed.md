@@ -1,1 +1,0 @@
-The documentation is a book with a getting started, a user guide, a rustdoc API reference, and a page on building from source. The ice Ih, cage, ring, interface, brine, and nucleation pages include the matching d-SEAMS recordings.

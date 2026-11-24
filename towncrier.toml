@@ -1,7 +1,7 @@
 [tool.towncrier]
 name = "dseams-rs"
 # [[[cog import dseams_version as v; cog.outl(f'version = "{v.VERSION}"')]]]
-version = "2.14.1"
+version = "2.14.2"
 # [[[end]]]
 directory = "newsfragments"
 filename = "CHANGELOG.md"

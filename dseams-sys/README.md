@@ -24,7 +24,7 @@ fn main() {
 
 <!-- [[[cog import dseams_version as v; cog.outl(f'```text\nlibseams {v.VERSION}\n```')]]] -->
 ```text
-libseams 2.14.1
+libseams 2.14.2
 ```
 <!-- [[[end]]] -->
 

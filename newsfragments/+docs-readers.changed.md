@@ -1,1 +1,0 @@
-The book and the READMEs start from `cargo add dseams --features bundled`, which needs no separate libseams. The tutorials run on the shipped dumps or on frames built in code, and `docs/check_examples.py` compiles and runs every Rust program in them and compares the printed output.

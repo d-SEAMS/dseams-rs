@@ -3,7 +3,7 @@ message: "If you use this software, please cite the d-SEAMS article in preferred
 title: "dseams-rs: Rust bindings to the d-SEAMS C API"
 type: software
 # [[[cog import dseams_version as v; cog.outl(f'version: "{v.VERSION}"')]]]
-version: "2.14.1"
+version: "2.14.2"
 # [[[end]]]
 date-released: "2026-11-17"
 license: MIT
