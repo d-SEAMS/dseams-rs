@@ -90,6 +90,8 @@ def rust_base(ctype):
         return "f64"
     if ctype == "size_t":
         return "usize"
+    if ctype == "uint32_t":
+        return "u32"
     if ctype == "char":
         return "c_char"
     if ctype == "void":
@@ -162,8 +164,8 @@ def split_params(args):
 
 def enums_of(text):
     found = []
-    for match in re.finditer(r"typedef\s+enum\s+(\w+)?\s*\{(.*?)\}\s*(\w+)\s*;", text, re.S):
-        body = match.group(2)
+    for match in re.finditer(r"\benum\s*(?:\w+\s*)?\{([^{}]*)\}\s*\w*\s*;", text):
+        body = match.group(1)
         value = None
         for item in body.split(","):
             item = item.strip()
@@ -182,6 +184,19 @@ def enums_of(text):
 
 def structs_of(text):
     return re.findall(r"typedef\s+struct\s+(\w+)\s+\1\s*;", text)
+
+
+def records_of(text):
+    records = re.findall(r"typedef\s+struct\s+(\w+)\s*\{([^{}]*)\}\s*\1\s*;", text)
+    for name, fields in records:
+        declarations = [field.strip() for field in fields.split(";") if field.strip()]
+        yield name, split_params(", ".join(declarations))
+
+
+def callbacks_of(text):
+    pattern = r"typedef\s+(\w+)\s*\(\s*\*\s*(\w+)\s*\)\s*\(([^()]*)\)\s*;"
+    for ret, name, args in re.findall(pattern, text):
+        yield rust_type(ret), name, split_params(args)
 
 
 def functions_of(text):
@@ -236,6 +251,18 @@ def render(header):
         lines.append("pub struct {} {{".format(name))
         lines.append("    _private: [u8; 0],")
         lines.append("}")
+    for name, fields in records_of(text):
+        lines.append("#[repr(C)]")
+        lines.append("pub struct {} {{".format(name))
+        for field, rust in fields:
+            lines.append("    pub {}: {},".format(rust_name(field), rust))
+        lines.append("}")
+    for ret, name, args in callbacks_of(text):
+        arrow = "" if ret is None else " -> {}".format(ret)
+        lines.append(f'pub type {name} = Option<unsafe extern "C" fn(')
+        for arg, rust in args:
+            lines.append("    {}: {},".format(rust_name(arg), rust))
+        lines.append(f"){arrow}>;")
     lines.append("")
     lines.append('extern "C" {')
     for ret, name, params in functions_of(text):

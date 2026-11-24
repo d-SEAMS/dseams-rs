@@ -42,6 +42,8 @@ pub const SEAMS_CHILL_OVITO: c_int = 1;
 pub const SEAMS_GRAPH_CUTOFF: c_int = 0;
 pub const SEAMS_GRAPH_MUTUAL: c_int = 1;
 pub const SEAMS_GRAPH_SEEDED: c_int = 2;
+pub const SEAMS_TETRAHEDRAL_NEAREST_FOUR: c_int = 0;
+pub const SEAMS_TETRAHEDRAL_WITHIN_CUTOFF: c_int = 1;
 pub const SEAMS_CAGE_WATER: c_int = 0;
 pub const SEAMS_CAGE_HEX: c_int = 1;
 pub const SEAMS_CAGE_CUBIC: c_int = 2;
@@ -57,6 +59,8 @@ pub const SEAMS_SITE_APOLAR: c_int = 7;
 pub const SEAMS_SITE_WATER_O: c_int = 8;
 pub const SEAMS_SITE_WATER_H: c_int = 9;
 pub const SEAMS_SITE_SOLVENT: c_int = 10;
+pub const SEAMS_HBOND_EDGE_WITH_H: c_int = 1;
+pub const SEAMS_HBOND_EDGE_WITH_GEOMETRY: c_int = 2;
 
 #[repr(C)]
 pub struct seams_system {
@@ -82,6 +86,50 @@ pub struct seams_brine {
 pub struct seams_topo {
     _private: [u8; 0],
 }
+#[repr(C)]
+pub struct seams_msd {
+    _private: [u8; 0],
+}
+#[repr(C)]
+pub struct seams_hbond_tcf {
+    _private: [u8; 0],
+}
+#[repr(C)]
+pub struct seams_reorient {
+    _private: [u8; 0],
+}
+#[repr(C)]
+pub struct seams_hbond_edge {
+    pub size: u32,
+    pub donor: u32,
+    pub acceptor: u32,
+    pub hydrogen: u32,
+    pub d_DA: f64,
+    pub angle: f64,
+}
+#[repr(C)]
+pub struct seams_directed_hbond {
+    pub size: u32,
+    pub donor: u32,
+    pub hydrogen: u32,
+    pub acceptor: u32,
+    pub d_AH: f64,
+    pub d_DA: f64,
+    pub angle: f64,
+}
+pub type seams_quench_callback = Option<
+    unsafe extern "C" fn(
+        xyz: *const f64,
+        n: usize,
+        box9: *const f64,
+        box_len: usize,
+        xyz_out: *mut f64,
+        xyz_out_len: usize,
+        box9_out: *mut f64,
+        box9_out_len: usize,
+        user_data: *mut c_void,
+    ) -> c_int,
+>;
 
 extern "C" {
     pub fn seams_abi() -> c_int;
@@ -210,12 +258,42 @@ extern "C" {
         median: *mut f64,
         n_ice: *mut c_int,
     ) -> c_int;
+    pub fn seams_tetrahedral_order(
+        sys: *mut seams_system,
+        centres: *const c_int,
+        n_centres: usize,
+        partners: *const c_int,
+        n_partners: usize,
+        convention: c_int,
+        cutoff: f64,
+        q: *mut f64,
+        q_len: usize,
+    ) -> c_int;
+    pub fn seams_lsi(
+        sys: *mut seams_system,
+        centres: *const c_int,
+        n_centres: usize,
+        partners: *const c_int,
+        n_partners: usize,
+        cutoff: f64,
+        lsi: *mut f64,
+        lsi_len: usize,
+    ) -> c_int;
     pub fn seams_rings_find(
         sys: *mut seams_system,
         cutoff: f64,
         r#type: c_int,
         graph: c_int,
         max_depth: c_int,
+        out: *mut *mut seams_rings,
+    ) -> c_int;
+    pub fn seams_rings_from_csr(
+        offsets: *const c_int,
+        offsets_len: usize,
+        columns: *const c_int,
+        columns_len: usize,
+        max_depth: c_int,
+        geometry: *const seams_system,
         out: *mut *mut seams_rings,
     ) -> c_int;
     pub fn seams_rings_destroy(rings: *mut seams_rings);
@@ -236,6 +314,14 @@ extern "C" {
         atoms: *mut c_int,
         cap: usize,
         n_out: *mut usize,
+    ) -> c_int;
+    pub fn seams_rings_winding(
+        rings: *const seams_rings,
+        axis: c_int,
+        axis_winding: *mut c_int,
+        axis_winding_len: usize,
+        contractible: *mut c_int,
+        contractible_len: usize,
     ) -> c_int;
     pub fn seams_rings_chordless(
         nb: *const seams_neighbours,
@@ -413,6 +499,75 @@ extern "C" {
         angle_cutoff: f64,
         n_bonds: *mut c_int,
     ) -> c_int;
+    pub fn seams_hbond_edges(
+        sys: *mut seams_system,
+        cutoff: f64,
+        oxygen_type: c_int,
+        hydrogen_type: c_int,
+        dist_cutoff: f64,
+        angle_cutoff: f64,
+        fields: c_int,
+        edges: *mut seams_hbond_edge,
+        cap: usize,
+        n_out: *mut usize,
+    ) -> c_int;
+    pub fn seams_system_set_hydrogen_frame(
+        sys: *mut seams_system,
+        heavy_xyz: *const f64,
+        n_heavy: usize,
+        heavy_types: *const c_int,
+        heavy_ids: *const c_int,
+        heavy_mols: *const c_int,
+        hydrogen_xyz: *const f64,
+        n_hydrogen: usize,
+        hydrogen_types: *const c_int,
+        hydrogen_ids: *const c_int,
+        hydrogen_mols: *const c_int,
+        box9: *const f64,
+        box_len: usize,
+    ) -> c_int;
+    pub fn seams_directed_hbonds(
+        sys: *mut seams_system,
+        pair_cutoff: f64,
+        dist_cutoff: f64,
+        angle_cutoff: f64,
+        donor_types: *const c_int,
+        n_donor_types: usize,
+        acceptor_types: *const c_int,
+        n_acceptor_types: usize,
+        hydrogen_type: c_int,
+        exclude_same_mol: c_int,
+        edges: *mut seams_directed_hbond,
+        cap: usize,
+        n_out: *mut usize,
+    ) -> c_int;
+    pub fn seams_quenched_analysis(
+        sys: *mut seams_system,
+        callback: seams_quench_callback,
+        user_data: *mut c_void,
+        cutoff: f64,
+        r#type: c_int,
+        graph: c_int,
+        max_depth: c_int,
+        oxygen_type: c_int,
+        hydrogen_type: c_int,
+        dist_cutoff: f64,
+        angle_cutoff: f64,
+        raw_labels: *mut c_int,
+        raw_labels_len: usize,
+        quenched_labels: *mut c_int,
+        quenched_labels_len: usize,
+        counts_raw: *mut c_int,
+        counts_quenched: *mut c_int,
+        rings_raw: *mut c_int,
+        rings_quenched: *mut c_int,
+        ring_counts_len: usize,
+        hbond_raw: *mut c_int,
+        hbond_quenched: *mut c_int,
+        hbond_edge_delta: *mut c_int,
+        ring_count_delta: *mut c_int,
+        class_change_count: *mut c_int,
+    ) -> c_int;
     pub fn seams_density_axis(
         sys: *mut seams_system,
         r#type: c_int,
@@ -538,4 +693,174 @@ extern "C" {
     pub fn seams_system_positions(sys: *const seams_system, xyz: *mut f64, len: usize) -> c_int;
     pub fn seams_system_types(sys: *const seams_system, types: *mut c_int, len: usize) -> c_int;
     pub fn seams_system_ids(sys: *const seams_system, ids: *mut c_int, len: usize) -> c_int;
+    pub fn seams_mols(sys: *const seams_system, mols: *mut c_int, len: usize) -> c_int;
+    pub fn seams_set_mols(sys: *mut seams_system, mols: *const c_int, len: usize) -> c_int;
+    pub fn seams_molecule_centres(
+        sys: *const seams_system,
+        mols: *const c_int,
+        mols_len: usize,
+        masses: *const f64,
+        masses_len: usize,
+        mol_ids_out: *mut c_int,
+        centres_out: *mut f64,
+        cap: usize,
+        n_mols: *mut usize,
+    ) -> c_int;
+    pub fn seams_traj_unwrap_positions(
+        xyz: *const f64,
+        nframes: usize,
+        natoms: usize,
+        boxes: *const f64,
+        nboxes: usize,
+        unwrapped: *mut f64,
+        unwrapped_len: usize,
+    ) -> c_int;
+    pub fn seams_traj_unwrap_centres(
+        xyz: *const f64,
+        nframes: usize,
+        natoms: usize,
+        boxes: *const f64,
+        nboxes: usize,
+        mols: *const c_int,
+        mols_len: usize,
+        masses: *const f64,
+        masses_len: usize,
+        mol_ids_out: *mut c_int,
+        mol_ids_cap: usize,
+        centres_out: *mut f64,
+        centres_len: usize,
+        n_mols: *mut usize,
+    ) -> c_int;
+    pub fn seams_water_vectors(
+        sys: *const seams_system,
+        oxygen_type: c_int,
+        hydrogen_type: c_int,
+        mol_ids: *mut c_int,
+        oh_mid: *mut f64,
+        bisector: *mut f64,
+        hh: *mut f64,
+        hh_unit: *mut f64,
+        cap: usize,
+        n_waters: *mut usize,
+    ) -> c_int;
+    pub fn seams_molecule_dipoles(
+        sys: *const seams_system,
+        mols: *const c_int,
+        mols_len: usize,
+        charges: *const f64,
+        charges_len: usize,
+        mol_ids_out: *mut c_int,
+        dipoles: *mut f64,
+        unit_vectors: *mut f64,
+        cap: usize,
+        n_mols: *mut usize,
+    ) -> c_int;
+    pub fn seams_orientation_order(
+        vectors: *const f64,
+        n_vectors: usize,
+        axis: *const f64,
+        cos_theta: *mut f64,
+        p2: *mut f64,
+        cap: usize,
+        mean_p1: *mut f64,
+        mean_p2: *mut f64,
+    ) -> c_int;
+    pub fn seams_msd_create(
+        natoms: usize,
+        max_lag: usize,
+        origin_stride: usize,
+        dt: f64,
+        axis: *const f64,
+        out: *mut *mut seams_msd,
+    ) -> c_int;
+    pub fn seams_msd_destroy(msd: *mut seams_msd);
+    pub fn seams_msd_push(
+        msd: *mut seams_msd,
+        xyz: *const f64,
+        natoms: usize,
+        box9: *const f64,
+        box_len: usize,
+    ) -> c_int;
+    pub fn seams_msd_curve(
+        msd: *const seams_msd,
+        lag_time: *mut f64,
+        total: *mut f64,
+        axial: *mut f64,
+        lateral: *mut f64,
+        n_origins: *mut usize,
+        cap: usize,
+        n_lags: *mut usize,
+    ) -> c_int;
+    pub fn seams_msd_fit(
+        msd: *const seams_msd,
+        t_start: f64,
+        t_end: f64,
+        d_total: *mut f64,
+        d_axial: *mut f64,
+        d_lateral: *mut f64,
+        alpha: *mut f64,
+    ) -> c_int;
+    pub fn seams_hbond_tcf_create(
+        max_lag: usize,
+        origin_stride: usize,
+        dt: f64,
+        directed: c_int,
+        out: *mut *mut seams_hbond_tcf,
+    ) -> c_int;
+    pub fn seams_hbond_tcf_destroy(tcf: *mut seams_hbond_tcf);
+    pub fn seams_hbond_tcf_push(
+        tcf: *mut seams_hbond_tcf,
+        donors: *const c_int,
+        acceptors: *const c_int,
+        n_edges: usize,
+    ) -> c_int;
+    pub fn seams_hbond_tcf_curve(
+        tcf: *const seams_hbond_tcf,
+        lag_time: *mut f64,
+        c_intermittent: *mut f64,
+        s_continuous: *mut f64,
+        n_origins: *mut usize,
+        cap: usize,
+        n_lags: *mut usize,
+    ) -> c_int;
+    pub fn seams_hbond_tcf_fit(
+        tcf: *const seams_hbond_tcf,
+        t_start: f64,
+        t_end: f64,
+        tau_c_int: *mut f64,
+        tau_c_exp: *mut f64,
+        tau_s_int: *mut f64,
+        tau_s_exp: *mut f64,
+    ) -> c_int;
+    pub fn seams_reorient_create(
+        n_vectors: usize,
+        max_lag: usize,
+        origin_stride: usize,
+        dt: f64,
+        out: *mut *mut seams_reorient,
+    ) -> c_int;
+    pub fn seams_reorient_destroy(reorient: *mut seams_reorient);
+    pub fn seams_reorient_push(
+        reorient: *mut seams_reorient,
+        vectors: *const f64,
+        n_vectors: usize,
+    ) -> c_int;
+    pub fn seams_reorient_curve(
+        reorient: *const seams_reorient,
+        lag_time: *mut f64,
+        c1: *mut f64,
+        c2: *mut f64,
+        n_origins: *mut usize,
+        cap: usize,
+        n_lags: *mut usize,
+    ) -> c_int;
+    pub fn seams_reorient_fit(
+        reorient: *const seams_reorient,
+        t_start: f64,
+        t_end: f64,
+        tau1_int: *mut f64,
+        tau1_exp: *mut f64,
+        tau2_int: *mut f64,
+        tau2_exp: *mut f64,
+    ) -> c_int;
 }
