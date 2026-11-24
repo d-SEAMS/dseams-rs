@@ -42,6 +42,7 @@ src/topo_bulk.cpp
 src/topo_fingerprint.cpp
 src/topo_neighbour_key.cpp
 src/topo_one_dim.cpp
+src/trajectory.cpp
 src/tum_offload.cpp
 src/water_select.cpp
 src/ylm_cartesian.cpp

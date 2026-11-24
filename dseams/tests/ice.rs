@@ -1,4 +1,44 @@
 /* Copyright (c) d-SEAMS developers */
+#[test]
+fn hydrogen_bond_lifetime_through_the_c_api() {
+    let mut accumulator = std::ptr::null_mut();
+    let status = unsafe { seams_sys::seams_hbond_tcf_create(1, 1, 0.5, 1, &mut accumulator) };
+    assert_eq!(status, seams_sys::SEAMS_OK);
+    assert!(!accumulator.is_null());
+
+    let donors = [0];
+    let acceptors = [1];
+    let mut time = [f64::NAN; 2];
+    let mut intermittent = [f64::NAN; 2];
+    let mut continuous = [f64::NAN; 2];
+    let mut origins = [0; 2];
+    let mut lags = 0;
+    // The input edges and output buffers live through each synchronous C call.
+    let (first, second, curve) = unsafe {
+        let first =
+            seams_sys::seams_hbond_tcf_push(accumulator, donors.as_ptr(), acceptors.as_ptr(), 1);
+        let second =
+            seams_sys::seams_hbond_tcf_push(accumulator, donors.as_ptr(), acceptors.as_ptr(), 1);
+        let curve = seams_sys::seams_hbond_tcf_curve(
+            accumulator,
+            time.as_mut_ptr(),
+            intermittent.as_mut_ptr(),
+            continuous.as_mut_ptr(),
+            origins.as_mut_ptr(),
+            time.len(),
+            &mut lags,
+        );
+        seams_sys::seams_hbond_tcf_destroy(accumulator);
+        (first, second, curve)
+    };
+    assert_eq!([first, second, curve], [seams_sys::SEAMS_OK; 3]);
+    assert_eq!(lags, 2);
+    assert_eq!(time, [0.0, 0.5]);
+    assert_eq!(intermittent, [1.0, 1.0]);
+    assert_eq!(continuous, [1.0, 1.0]);
+    assert_eq!(origins, [2, 1]);
+}
+
 fn diamond(nrep: usize) -> (Vec<f64>, f64) {
     let a = 2.75 * 4.0 / 3.0_f64.sqrt();
     let fcc = [
