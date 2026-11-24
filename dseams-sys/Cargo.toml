@@ -33,9 +33,10 @@ name = "seams_sys"
 # Compile libseams from the seams-core sources in vendor/ (see vendor.py)
 # instead of linking an installed one. pkg-config enables chemfiles 0.10
 # and readcon-core 0.16 when they are available. SEAMS_LIBDIR still wins.
-bundled = ["dep:cc"]
+bundled = ["dep:cc", "dep:linkcell"]
 
 [dependencies]
+linkcell = { version = "=0.6.0", optional = true }
 
 [build-dependencies]
 cc = { version = "1.2", features = ["parallel"], optional = true }

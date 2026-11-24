@@ -4,6 +4,10 @@
 
 use std::os::raw::{c_char, c_int, c_void};
 
+// The bundled C++ engine calls the Linkcell C ABI.
+#[cfg(seams_bundled)]
+use linkcell as _;
+
 pub const SEAMS_OK: c_int = 0;
 pub const SEAMS_ERR_NULL: c_int = 1;
 pub const SEAMS_ERR_RANGE: c_int = 2;

@@ -223,6 +223,10 @@ def render(header):
         "",
         "use std::os::raw::{c_char, c_int, c_void};",
         "",
+        "// The bundled C++ engine calls the Linkcell C ABI.",
+        "#[cfg(seams_bundled)]",
+        "use linkcell as _;",
+        "",
     ]
     for name, value in enums_of(text):
         lines.append("pub const {}: c_int = {};".format(name, value))

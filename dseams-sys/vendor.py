@@ -12,6 +12,7 @@ repository root. Run this before cargo package or cargo publish:
 
 Eigen comes from the 3.4.0 release tarball, checked against its sha256.
 Pass --eigen-tarball to use a tarball that is already on disk.
+Linkcell headers come from the crate pinned in Cargo.lock.
 """
 
 import argparse
@@ -23,6 +24,7 @@ import subprocess
 import sys
 import tarfile
 import tempfile
+import tomllib
 import urllib.request
 
 HERE = pathlib.Path(__file__).resolve().parent
@@ -128,6 +130,24 @@ def unpack_eigen(tarball, dest):
                 shutil.copyfileobj(src, out)
 
 
+def vendor_linkcell(dest, tmp):
+    """Copy the C and C++ headers from the exact crate the engine links."""
+    lock = tomllib.loads((HERE.parent / "Cargo.lock").read_text())
+    package = next(p for p in lock["package"] if p["name"] == "linkcell")
+    version = package["version"]
+    stem = f"linkcell-{version}"
+    tarball = pathlib.Path(tmp) / f"{stem}.crate"
+    fetch(f"https://static.crates.io/crates/linkcell/{stem}.crate", tarball)
+    digest = hashlib.sha256(tarball.read_bytes()).hexdigest()
+    if digest != package["checksum"]:
+        raise SystemExit(f"{tarball}: sha256 {digest}, expected {package['checksum']}")
+    dest.mkdir()
+    with tarfile.open(tarball) as archive:
+        for name in ("linkcell.h", "linkcell.hpp"):
+            with archive.extractfile(f"{stem}/include/{name}") as src:
+                (dest / name).write_bytes(src.read())
+
+
 def main(argv):
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--source", help="seams-core git checkout holding the pinned tag")
@@ -151,6 +171,7 @@ def main(argv):
             tarball = pathlib.Path(tmp) / f"eigen-{EIGEN_VERSION}.tar.gz"
             fetch(EIGEN_URL, tarball)
         unpack_eigen(tarball, vendor / "eigen")
+        vendor_linkcell(vendor / "linkcell", tmp)
     total = sum(1 for p in vendor.rglob("*") if p.is_file())
     print(f"vendored {total} files into {vendor}")
     return 0

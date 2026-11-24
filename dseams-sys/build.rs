@@ -22,6 +22,7 @@ struct ReaderFeatures {
 fn main() {
     println!("cargo:rerun-if-changed=build.rs");
     println!("cargo:rerun-if-changed=sources.txt");
+    println!("cargo:rustc-check-cfg=cfg(seams_bundled)");
     for var in [
         "SEAMS_LIBDIR",
         "SEAMS_LIB_DIR",
@@ -257,6 +258,12 @@ fn build_bundled() -> ReaderFeatures {
     let manifest = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap());
     let root = source_root(&manifest);
     let out = PathBuf::from(env::var("OUT_DIR").unwrap());
+    let linkcell = [root.join("linkcell"), root.join("subprojects/linkcell/include")]
+        .into_iter()
+        .find(|dir| dir.join("linkcell.hpp").is_file() && dir.join("linkcell.h").is_file())
+        .expect("bundled libseams needs Linkcell headers: run vendor.py or download the Linkcell subproject");
+    println!("cargo:rerun-if-changed={}", linkcell.display());
+    println!("cargo:rustc-cfg=seams_bundled");
 
     let template = fs::read_to_string(root.join("include/seams_version.h.in")).unwrap();
     let header = template
@@ -321,10 +328,12 @@ fn build_bundled() -> ReaderFeatures {
             .flag("-w")
             .flag("-fopenmp")
             .define("SEAMS_HAS_OPENMP", "1")
+            .define("SEAMS_HAS_LINKCELL", "1")
             .define("EIGEN_MPL2_ONLY", None)
             .include(root.join("src/include/internal"))
             .include(root.join("include"))
             .include(&generated)
+            .include(&linkcell)
             .includes(&eigen);
         if let Some(dependency) = &chemfiles {
             build
