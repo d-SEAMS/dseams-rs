@@ -24,6 +24,7 @@ fn main() {
     println!("cargo:rerun-if-changed=sources.txt");
     println!("cargo:rustc-check-cfg=cfg(seams_bundled)");
     for var in [
+        "DOCS_RS",
         "SEAMS_LIBDIR",
         "SEAMS_LIB_DIR",
         "SEAMS_INCLUDE",
